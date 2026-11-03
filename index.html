@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>REFLEX | AI Boxing & Reflex Arena</title>
+  
+  <!-- Sleek Modern & Athletic Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Russo+One&display=swap" rel="stylesheet">
+
+  <!-- MediaPipe Pose, Hands (21-Joint Tracking) & Camera Utils CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <!-- Modern Arcade Stylesheet -->
+  <link rel="stylesheet" href="./src/styles/arcade.css">
+</head>
+<body>
+
+  <div class="gym-arena">
+    <!-- Optional CRT Scanlines Overlay -->
+    <div class="scanlines"></div>
+
+    <!-- Top Modern Navigation Bar -->
+    <header class="arcade-header">
+      <div class="brand-badge">
+        <h1 class="brand-title">REFLEX</h1>
+        <span class="brand-pill">AI KINEMATICS</span>
+      </div>
+
+      <!-- Mode Selector Pills -->
+      <nav class="mode-tabs">
+        <button class="tab-btn" data-mode="FORM">
+          <span>🥋</span> Form Coach
+        </button>
+        <button class="tab-btn active" data-mode="REFLEX">
+          <span>⚡</span> Reflex Battle
+        </button>
+      </nav>
+
+      <!-- Action Buttons -->
+      <div class="header-actions">
+        <button class="action-btn" id="btn-difficulty-toggle" title="Bot Difficulty: Rookie / Pro / Titan">⚡ DIFFICULTY: PRO</button>
+        <button class="action-btn" id="btn-fighter-toggle" title="Toggle Opponent: Shane Fazen (Sparring) / Titan Cyberbot">🥊 SHANE (SPARRING)</button>
+        <button class="action-btn" id="btn-gloves-toggle" title="Toggle 3D Boxing Gloves: Red (Punch-Out) / Cyan / Gold / Off">🧤 3D GLOVES: RED</button>
+        <button class="action-btn" id="btn-recenter" title="Center body and head tracking baseline (Key: C)">🎯 RECENTER</button>
+        <button class="action-btn active-pill" id="btn-vr">🥽 VR CAM: ON</button>
+        <button class="action-btn" id="btn-mute">🔊 SFX</button>
+        <button class="action-btn" id="btn-scanlines">📺 CRT</button>
+      </div>
+    </header>
+
+    <!-- Sleek Instruction Capsule Banner -->
+    <div class="instruction-banner" id="instruction-banner">
+      🥊 FORM COACH: Keep your hands up guarding your chin. Snap clean punches with hip rotation.
+    </div>
+
+    <!-- Main Viewport Arena -->
+    <main class="viewport-stage">
+      <!-- Hidden Video Element for MediaPipe Input -->
+      <video id="webcam-video" playsinline muted></video>
+
+      <!-- Full-screen Mirrored Interactive Canvas -->
+      <canvas id="game-canvas"></canvas>
+
+      <!-- Mode 1: Form Checker Coaching Card (Bottom Right) -->
+      <aside class="form-checker-panel" id="form-checker-panel">
+        <div class="panel-header">
+          <span class="panel-title">FORM TELEMETRY</span>
+          <span style="font-size: 11px; font-weight: 800; color: var(--neon-cyan);">LIVE</span>
+        </div>
+
+        <div class="form-score-meter">
+          <div class="score-badge" id="form-score-val">100%</div>
+          <div class="score-details">
+            <div style="font-size: 11px; color: #94a3b8; font-weight: 700;">FORM ACCURACY</div>
+            <div class="meter-bar-container">
+              <div class="meter-fill" id="meter-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-grid">
+          <div class="status-card" id="guard-status-card">
+            <div class="status-label">CHIN GUARD</div>
+            <div class="status-val" id="guard-status-val">PROTECTED</div>
+          </div>
+          <div class="status-card" id="balance-status-card">
+            <div class="status-label">CENTER OF MASS</div>
+            <div class="status-val" id="balance-status-val">CENTERED</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Punch Statistics Panel (Bottom Left) -->
+      <aside class="punch-stats-panel" id="punch-stats-panel">
+        <div class="panel-header">
+          <span class="panel-title" style="color: var(--neon-gold);">STRIKE LOG</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">TOTAL PUNCHES</span>
+          <span class="stat-num" id="stat-total-punches">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">LEAD JABS</span>
+          <span class="stat-num" id="stat-jabs">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">POWER CROSSES</span>
+          <span class="stat-num" id="stat-crosses">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">HOOKS</span>
+          <span class="stat-num" id="stat-hooks">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">UPPERCUTS</span>
+          <span class="stat-num" id="stat-uppers">0</span>
+        </div>
+      </aside>
+
+      <!-- Center Announcer / Splash Modal -->
+      <div class="splash-modal" id="splash-modal">
+        <div class="splash-main-text" id="splash-main-text">ROUND 1</div>
+        <div class="splash-sub-text" id="splash-sub-text">FIGHT!</div>
+      </div>
+
+      <!-- Post-Match Knockout / Retry Modal -->
+      <div class="match-over-modal" id="match-over-modal" style="display: none;">
+        <div class="match-card">
+          <div class="match-badge" id="match-badge">KNOCKOUT</div>
+          <div class="match-title" id="match-result-title">VICTORY!</div>
+          <div class="match-subtitle" id="match-result-sub">YOU DEFEATED THE OPPONENT!</div>
+
+          <div class="match-stats-row">
+            <div class="match-stat">
+              <span class="m-stat-val" id="m-stat-punches">0</span>
+              <span class="m-stat-label">PUNCHES LANDED</span>
+            </div>
+            <div class="match-stat">
+              <span class="m-stat-val" id="m-stat-counters">0</span>
+              <span class="m-stat-label">PUNISH COUNTERS</span>
+            </div>
+            <div class="match-stat">
+              <span class="m-stat-val" id="m-stat-score">0</span>
+              <span class="m-stat-label">MATCH SCORE</span>
+            </div>
+          </div>
+
+          <button class="retry-btn" id="btn-retry-match">
+            🥊 RETRY MATCH (SPACE)
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Start Camera Gate Modal -->
+    <div class="camera-gate" id="camera-gate">
+      <div class="gate-card">
+        <div class="gate-title">REFLEX</div>
+        <div class="gate-subtitle">AI KINEMATICS & REFLEX TRAINER</div>
+
+        <p class="gate-desc">
+          <strong>🥽 Real-Time Head Tracking VR:</strong> Tracks your face in 3D so the camera, 3D ring ropes, and arena shift as you duck, slip, and lean.
+          Test your defense in <strong>Reflex Battle</strong> or hone your mechanics in <strong>Form Coach</strong>.
+        </p>
+
+        <button class="gate-btn" id="start-camera-btn">
+          ENTER DOJO
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
