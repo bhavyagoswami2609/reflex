@@ -716,7 +716,7 @@ export class Boxer3DScene {
     // Perspective Camera: Sparring Pocket Range (Shane Fazen fightTIPS reference)
     // Opponent stands inside the ring within reach, eye to eye, filling ~75% of viewport
     const aspect = (this.container?.clientWidth || window.innerWidth) / ((this.container?.clientHeight || window.innerHeight) || 1);
-    this.camera = new THREE.PerspectiveCamera(52, aspect, 0.1, 100);
+    this.camera = new THREE.PerspectiveCamera(52, aspect, 0.02, 100);
     this.camera.position.set(0, 1.48, 1.45);
     this.camera.lookAt(0, 1.36, 0);
 
@@ -786,6 +786,12 @@ export class Boxer3DScene {
     }
 
     this.scene.add(this.boxer.model);
+    // Prevent frustum culling from randomly dropping meshes when boxer is up close to the camera
+    this.boxer.model.traverse((child) => {
+      if (child.isMesh) {
+        child.frustumCulled = false;
+      }
+    });
     this.currentBasePose = EXTENDED_POSES.GUARD;
     this.boxer.applyPose(this.currentBasePose);
   }
@@ -877,7 +883,10 @@ export class Boxer3DScene {
     this.state = 'OPENING';
     this.stateTimer = timestamp;
     this.counterWindow = true;
+    this.openingDuration = baseDur;
     this.recoverDuration = baseDur;
+    this.openingStartPose = this.currentPose || EXTENDED_POSES.GUARD;
+    this.openingStartZ = (this.boxer && this.boxer.model) ? this.boxer.model.position.z : 0.20;
     if (this.boxer) {
       if (this.boxer.setVisorColor) {
         this.boxer.setVisorColor(0xffb700, 3.5); // Golden opening cue
@@ -1012,8 +1021,17 @@ export class Boxer3DScene {
     this.counterWindow = true;
     this.massiveCounter = true;
     this.massiveCounterDuration = durationMs;
+    this.openingDuration = durationMs;
     this.recoverDuration = Math.max(this.recoverDuration, durationMs);
+    this.state = 'OPENING';
     this.stateTimer = timestamp;
+    this.openingStartPose = this.currentPose || EXTENDED_POSES.GUARD;
+    this.openingStartZ = (this.boxer && this.boxer.model) ? this.boxer.model.position.z : 0.30;
+    if (this.boxer) {
+      if (this.boxer.setVisorColor) {
+        this.boxer.setVisorColor(0xffb700, 4.0);
+      }
+    }
   }
 
   /**
@@ -1138,7 +1156,7 @@ export class Boxer3DScene {
       // Boxer drives entire body forward into the pocket right at the camera!
       const reach = this.activeAttackDef?.forwardReach || 0.52;
       if (this.boxer && this.boxer.model) {
-        const forwardZ = reach * (0.20 + 0.80 * easedProgress);
+        const forwardZ = Math.min(0.44, reach * (0.20 + 0.80 * easedProgress));
         const verticalPop = (this.attackType === 'UPPERCUT') ? 0.09 * Math.sin(easedProgress * Math.PI) : 0;
         this.boxer.model.position.set(0, verticalPop, forwardZ);
       }
@@ -1194,7 +1212,7 @@ export class Boxer3DScene {
       // Follow-Through drive in combination sequence
       const reach = this.activeAttackDef?.forwardReach || 0.50;
       if (this.boxer && this.boxer.model) {
-        const forwardZ = reach * (0.45 + 0.55 * easedProgress);
+        const forwardZ = Math.min(0.42, reach * (0.45 + 0.55 * easedProgress));
         this.boxer.model.position.set(0, 0, forwardZ);
       }
 
@@ -1228,7 +1246,7 @@ export class Boxer3DScene {
       // Holds ground deep inside the sparring pocket
       const reach = this.activeAttackDef?.forwardReach || 0.50;
       if (this.boxer && this.boxer.model) {
-        this.boxer.model.position.set(0, 0, reach * 0.75);
+        this.boxer.model.position.set(0, 0, Math.min(0.35, reach * 0.75));
       }
 
       if (elapsed >= this.transitionDuration) {
@@ -1272,17 +1290,26 @@ export class Boxer3DScene {
       // Vulnerable guard dropped state - prime time for counter punches!
       const progress = Math.min(1.0, elapsed / this.openingDuration);
       const easedProgress = EASING.easeOutQuad(Math.min(1.0, progress * 2.2));
-      const currentPose = interpolateJointTransforms(EXTENDED_POSES.GUARD, EXTENDED_POSES.OPENING, easedProgress);
+      const startPose = this.openingStartPose || EXTENDED_POSES.GUARD;
+      const currentPose = interpolateJointTransforms(startPose, EXTENDED_POSES.OPENING, easedProgress);
       this.applyJointPoseWithBounce(currentPose, timestamp, 0.28);
 
       if (this.boxer && this.boxer.model) {
-        this.boxer.model.position.set(0, 0, 0.12 * (1.0 - easedProgress));
+        const startZ = (this.openingStartZ !== undefined && this.openingStartZ !== null) ? this.openingStartZ : 0.12;
+        this.boxer.model.position.set(0, 0, startZ * (1.0 - easedProgress));
       }
 
       if (elapsed >= this.openingDuration) {
         this.state = 'IDLE';
         this.counterWindow = false;
         this.massiveCounter = false;
+        this.attackType = null;
+        this.activeAttackDef = null;
+        this.activeStepDef = null;
+        this.activeCombo = null;
+        this.requiredDefense = null;
+        this.openingStartPose = null;
+        this.openingStartZ = null;
         this.lastIdleOpeningCheck = timestamp + (this.difficulty === 'ROOKIE' ? 5500 : this.difficulty === 'CHAMPION' ? 13000 : 8000);
         if (this.boxer && this.boxer.model) {
           this.boxer.model.position.set(0, 0, 0);
@@ -1366,6 +1393,15 @@ export class Boxer3DScene {
 
       if (elapsed >= this.hurtDuration) {
         this.state = 'IDLE';
+        this.counterWindow = false;
+        this.massiveCounter = false;
+        this.attackType = null;
+        this.activeAttackDef = null;
+        this.activeStepDef = null;
+        this.activeCombo = null;
+        this.requiredDefense = null;
+        this.openingStartPose = null;
+        this.openingStartZ = null;
         this.lastIdleOpeningCheck = timestamp + 3500;
         if (this.boxer && this.boxer.model) {
           this.boxer.model.position.set(0, 0, 0);
@@ -1466,6 +1502,7 @@ export class Boxer3DScene {
    */
   applyJointPose(pose) {
     if (!pose) return;
+    this.currentPose = pose;
     const joints = this.boxer.joints;
 
     for (const [jointName, transform] of Object.entries(pose)) {
@@ -1568,7 +1605,8 @@ export class Boxer3DScene {
 
     // Lean IN towards screen (camZ > 0) -> camera surges closer into sparring pocket (-Z)
     // Pull BACK out of reach (camZ < 0) -> camera pulls back (+Z)
-    this.camera.position.z = baseCamZ - camZ * 0.55;
+    // Clamped so camera never physically penetrates or clips through the opponent
+    this.camera.position.z = Math.max(1.18, baseCamZ - camZ * 0.55);
 
     // Aim eyes at opponent's chin/core with dynamic eye-tracking
     const lookTargetX = camX * 0.12;

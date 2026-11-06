@@ -4,7 +4,7 @@ import { DefenseDetector } from './biomechanics/defenseDetector.js';
 import { SkeletonRenderer } from './render/skeletonRenderer.js';
 import { FXRenderer } from './render/fxRenderer.js';
 import { Boxer3DScene } from './game/boxer3DAnimator.js';
-import { GameState } from './game/gameState.js';
+import { GameState, toRoman } from './game/gameState.js';
 import { VRCameraController } from './render/vrCameraController.js';
 import { CombatAI } from './game/combatAI.js';
 import { PlayerGlovesRenderer } from './render/playerGlovesRenderer.js';
@@ -33,13 +33,14 @@ class ShadowBoxingApp {
     this.handResults = null;
     this.handsInstance = null;
 
-    // Mode: 'FORM' | 'REFLEX' (Reflex Battle as Default Start Mode)
+    // Mode: 'REFLEX' | 'FORM' (Reflex Sparring default)
     this.currentMode = 'REFLEX';
 
     // State & Tracking
     this.poseLandmarks = null;
     this.lastFrameTime = performance.now();
     this.isRunning = false;
+    this.isPaused = false;
     this.opponentAttackCooldown = performance.now() + 1200;
     this.hitstopTimer = 0; // Freeze frame hitstop effect
 
@@ -47,165 +48,116 @@ class ShadowBoxingApp {
   }
 
   initDOM() {
-    // Mode tabs
-    const tabs = document.querySelectorAll('.tab-btn');
-    tabs.forEach(btn => {
-      btn.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active'));
-        btn.classList.add('active');
-        this.setMode(btn.dataset.mode);
-      });
-    });
+    // 1. Header Recenter Action
+    const recenterBtn = document.getElementById('btn-recenter');
+    if (recenterBtn) {
+      recenterBtn.addEventListener('click', () => this.handleRecenter());
+    }
 
-    // Audio Toggle
+    // 2. Header Audio Action
     const muteBtn = document.getElementById('btn-mute');
     if (muteBtn) {
       muteBtn.addEventListener('click', () => {
         const isMuted = this.audio.toggleMute();
-        muteBtn.textContent = isMuted ? '🔇 MUTED' : '🔊 SFX';
+        muteBtn.textContent = isMuted ? 'AUDIO: MUTED' : 'AUDIO';
       });
     }
 
-    // VR Head Tracking Toggle
-    const vrBtn = document.getElementById('btn-vr');
-    if (vrBtn) {
-      vrBtn.addEventListener('click', () => {
-        const isEnabled = this.vrCamera.toggle();
-        vrBtn.textContent = isEnabled ? '🥽 VR CAM: ON' : '🥽 VR CAM: OFF';
-        if (isEnabled) {
-          vrBtn.classList.add('active-pill');
-        } else {
-          vrBtn.classList.remove('active-pill');
-        }
-      });
+    // 3. Header Menu Toggle Action
+    const menuToggleBtn = document.getElementById('btn-menu-toggle');
+    if (menuToggleBtn) {
+      menuToggleBtn.addEventListener('click', () => this.toggleMenu());
     }
 
-    // Scanline Toggle
-    const scanlineBtn = document.getElementById('btn-scanlines');
-    const scanlineDiv = document.querySelector('.scanlines');
-    if (scanlineBtn && scanlineDiv) {
-      scanlineBtn.addEventListener('click', () => {
-        const isCurrentlyHidden = scanlineDiv.style.display === 'none' || scanlineDiv.style.display === '';
-        scanlineDiv.style.display = isCurrentlyHidden ? 'block' : 'none';
-        scanlineBtn.textContent = isCurrentlyHidden ? '📺 CRT: ON' : '📺 CRT: OFF';
+    // 4. Menu Overlay: Discipline Selector Pills
+    const disciplinePills = document.querySelectorAll('#discipline-selector .menu-pill');
+    disciplinePills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        disciplinePills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        const mode = pill.dataset.discipline;
+        this.setMode(mode);
       });
-    }
-
-    // Bot Difficulty Toggle Button (ROOKIE -> PRO -> CHAMPION)
-    const diffBtn = document.getElementById('btn-difficulty-toggle');
-    if (diffBtn) {
-      diffBtn.addEventListener('click', () => {
-        const newDiff = this.combatAI.cycleDifficulty();
-        this.boxer3D.setDifficulty(newDiff.name);
-        diffBtn.textContent = `⚡ DIFFICULTY: ${newDiff.name}`;
-        diffBtn.style.borderColor = newDiff.color;
-        diffBtn.style.color = newDiff.color;
-        this.audio.speakAnnouncer(`DIFFICULTY ${newDiff.name}`);
-        this.fx.addFloatingBadge(`BOT DIFFICULTY: ${newDiff.name}`, window.innerWidth * 0.5, window.innerHeight * 0.35, newDiff.color, 28);
-      });
-    }
-
-    // Opponent Toggle Button (Shane Fazen vs Titan Cyberbot)
-    const fighterToggleBtn = document.getElementById('btn-fighter-toggle');
-    if (fighterToggleBtn) {
-      fighterToggleBtn.addEventListener('click', () => {
-        const next = this.boxer3D.toggleCharacterType();
-        if (next === 'human') {
-          fighterToggleBtn.textContent = '🥊 SHANE (SPARRING)';
-          this.audio.speakAnnouncer('SPARRING PARTNER: SHANE');
-          this.fx.addFloatingBadge('SPARRING PARTNER: SHANE FAZEN', window.innerWidth * 0.5, window.innerHeight * 0.35, '#00f3ff', 28);
-        } else {
-          fighterToggleBtn.textContent = '🤖 TITAN (CYBERBOT)';
-          this.audio.speakAnnouncer('OPPONENT: TITAN');
-          this.fx.addFloatingBadge('OPPONENT: TITAN CYBERBOT', window.innerWidth * 0.5, window.innerHeight * 0.35, '#ff0055', 28);
-        }
-      });
-    }
-
-    // Player 3D Translucent Gloves Theme Toggle (Punch-Out Red -> Cyan -> Gold -> Off)
-    const glovesToggleBtn = document.getElementById('btn-gloves-toggle');
-    if (glovesToggleBtn) {
-      glovesToggleBtn.addEventListener('click', () => {
-        const gloves3D = this.boxer3D.playerGloves3D;
-        if (!gloves3D || !gloves3D.enabled) {
-          if (gloves3D) gloves3D.enabled = true;
-          this.boxer3D.setGloveTheme('CRIMSON');
-          glovesToggleBtn.textContent = '🧤 3D GLOVES: RED';
-          this.fx.addFloatingBadge('3D GLOVES: PUNCH-OUT RED', window.innerWidth * 0.5, window.innerHeight * 0.35, '#ff3366', 26);
-        } else if (gloves3D.colorTheme === 'CRIMSON') {
-          this.boxer3D.setGloveTheme('CYAN');
-          glovesToggleBtn.textContent = '🧤 3D GLOVES: CYAN';
-          this.fx.addFloatingBadge('3D GLOVES: NEON CYAN', window.innerWidth * 0.5, window.innerHeight * 0.35, '#00f3ff', 26);
-        } else if (gloves3D.colorTheme === 'CYAN') {
-          this.boxer3D.setGloveTheme('GOLD');
-          glovesToggleBtn.textContent = '🧤 3D GLOVES: GOLD';
-          this.fx.addFloatingBadge('3D GLOVES: CHAMPION GOLD', window.innerWidth * 0.5, window.innerHeight * 0.35, '#ffd700', 26);
-        } else {
-          this.boxer3D.toggleGloves();
-          glovesToggleBtn.textContent = '🧤 3D GLOVES: OFF';
-          this.fx.addFloatingBadge('3D GLOVES: HIDDEN', window.innerWidth * 0.5, window.innerHeight * 0.35, '#94a3b8', 24);
-        }
-      });
-    }
-
-    // Re-Center Button
-    const recenterBtn = document.getElementById('btn-recenter');
-    if (recenterBtn) {
-      recenterBtn.addEventListener('click', () => {
-        if (this.lastMirroredLandmarks) {
-          const ok = this.defenseDetector.recenter(this.lastMirroredLandmarks);
-          this.vrCamera.recenter(this.lastMirroredLandmarks);
-          if (ok) {
-            this.audio.playWebRecenterChime();
-            this.audio.speakAnnouncer('BODY CENTERED!');
-            this.fx.addFloatingBadge('🎯 BODY RE-CENTERED!', window.innerWidth * 0.5, window.innerHeight * 0.30, '#00f3ff', 30);
-          }
-        }
-      });
-    }
-
-    // Keyboard 'C' shortcut to re-center
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'c' || e.key === 'C') {
-        if (this.lastMirroredLandmarks) {
-          const ok = this.defenseDetector.recenter(this.lastMirroredLandmarks);
-          this.vrCamera.recenter(this.lastMirroredLandmarks);
-          if (ok) {
-            this.audio.playWebRecenterChime();
-            this.audio.speakAnnouncer('BODY CENTERED!');
-            this.fx.addFloatingBadge('🎯 BODY RE-CENTERED!', window.innerWidth * 0.5, window.innerHeight * 0.30, '#00f3ff', 30);
-          }
-        }
-      }
     });
 
-    // Camera Gate Start Button
-    const startBtn = document.getElementById('start-camera-btn');
-    const cameraGate = document.getElementById('camera-gate');
-    if (startBtn && cameraGate) {
-      startBtn.addEventListener('click', async () => {
-        startBtn.textContent = 'CONNECTING CAMERA...';
-        await this.startCamera();
-        cameraGate.style.display = 'none';
-        this.audio.playBell();
-        this.audio.speakAnnouncer('ROUND ONE... FIGHT!');
-        this.showSplashModal('ROUND 1', 'FIGHT!');
+    // 5. Menu Overlay: Opponent Selector Pills
+    const opponentPills = document.querySelectorAll('#opponent-selector .menu-pill');
+    opponentPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        opponentPills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        const opp = pill.dataset.opponent;
+        this.boxer3D.setCharacterType(opp);
       });
+    });
+
+    // 6. Menu Overlay: Rigor (Difficulty) Selector Stacked Buttons
+    const rigorBtns = document.querySelectorAll('#rigor-selector .menu-stack-btn');
+    rigorBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        rigorBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const rigor = btn.dataset.rigor;
+        this.combatAI.setDifficulty(rigor);
+        const animDiff = (rigor === 'NOVICE') ? 'ROOKIE' : (rigor === 'CHAMPION') ? 'CHAMPION' : 'PRO';
+        this.boxer3D.setDifficulty(animDiff);
+      });
+    });
+
+    // 7. Menu Overlay: Glove Finish Selector Swatches
+    const gloveSwatches = document.querySelectorAll('#glove-finish-selector .glove-swatch');
+    gloveSwatches.forEach(swatch => {
+      swatch.addEventListener('click', () => {
+        gloveSwatches.forEach(s => s.classList.remove('active'));
+        swatch.classList.add('active');
+        const finish = swatch.dataset.glove;
+        if (finish === 'OFF') {
+          if (this.boxer3D.playerGloves3D) this.boxer3D.playerGloves3D.enabled = false;
+          if (this.playerGloves) this.playerGloves.enabled = false;
+        } else {
+          if (this.boxer3D.playerGloves3D) {
+            this.boxer3D.playerGloves3D.enabled = true;
+            this.boxer3D.setGloveTheme(finish);
+          }
+          if (this.playerGloves) {
+            this.playerGloves.enabled = true;
+            this.playerGloves.setTheme(finish);
+          }
+        }
+      });
+    });
+
+    // 8. Menu Overlay: Action Buttons (Enter Arena & Resume Session)
+    const enterArenaBtn = document.getElementById('btn-enter-arena');
+    if (enterArenaBtn) {
+      enterArenaBtn.addEventListener('click', () => this.enterArena());
     }
 
-    // Retry Match Button on Match Over Modal
-    const retryBtn = document.getElementById('btn-retry-match');
-    if (retryBtn) {
-      retryBtn.addEventListener('click', () => this.retryMatch());
+    const resumeSessionBtn = document.getElementById('btn-resume-session');
+    if (resumeSessionBtn) {
+      resumeSessionBtn.addEventListener('click', () => this.resumeSession());
     }
 
-    // Keyboard Space / Enter to quickly retry match
+    // 9. Post-Round Performance Analysis Screen Actions
+    const nextRoundBtn = document.getElementById('btn-next-round');
+    if (nextRoundBtn) {
+      nextRoundBtn.addEventListener('click', () => this.beginNextRound());
+    }
+
+    const summaryToMenuBtn = document.getElementById('btn-summary-to-menu');
+    if (summaryToMenuBtn) {
+      summaryToMenuBtn.addEventListener('click', () => this.openMenuFromSummary());
+    }
+
+    // Background accessibility key listener (no UI text instructions attached)
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' || e.key === ' ' || e.key === 'Enter') {
+      if (e.key === 'c' || e.key === 'C') {
+        this.handleRecenter();
+      } else if (e.code === 'Space' || e.key === ' ' || e.key === 'Enter') {
         const modal = document.getElementById('match-over-modal');
         if (modal && modal.style.display !== 'none' && this.gameState.isMatchOver) {
           e.preventDefault();
-          this.retryMatch();
+          this.beginNextRound();
         }
       }
     });
@@ -215,17 +167,128 @@ class ShadowBoxingApp {
     if (viewportStage) {
       this.boxer3D.init(viewportStage);
       this.boxer3D.setVisible(true);
+      // Default to Gilded Amber gloves
+      if (this.boxer3D.playerGloves3D) {
+        this.boxer3D.setGloveTheme('GOLD');
+      }
+      if (this.playerGloves) {
+        this.playerGloves.setTheme('GOLD');
+      }
     }
 
     window.addEventListener('resize', () => this.resizeCanvas());
     this.resizeCanvas();
 
-    // Default to Reflex Arcade Battle mode on initial load
+    // Default mode: Reflex Sparring
     this.setMode('REFLEX');
+    this.updateHeaderDisciplineTitle();
+
+    // Open Academy Menu Hub on initial load so player configures their session
+    this.openMenu();
+  }
+
+  handleRecenter() {
+    if (this.lastMirroredLandmarks) {
+      const ok = this.defenseDetector.recenter(this.lastMirroredLandmarks);
+      this.vrCamera.recenter(this.lastMirroredLandmarks);
+      if (ok) {
+        this.audio.playWebRecenterChime();
+        this.fx.addFloatingBadge('STANCE ALIGNED', window.innerWidth * 0.5, window.innerHeight * 0.30, '#d4a03c', 28);
+      }
+    }
+  }
+
+  openMenu() {
+    const menu = document.getElementById('menu-overlay');
+    const resumeBtn = document.getElementById('btn-resume-session');
+    if (menu) menu.style.display = 'flex';
+    if (resumeBtn) {
+      resumeBtn.style.display = this.isRunning ? 'inline-block' : 'none';
+    }
+    this.isPaused = true;
+  }
+
+  closeMenu() {
+    const menu = document.getElementById('menu-overlay');
+    if (menu) menu.style.display = 'none';
+    this.isPaused = false;
+  }
+
+  toggleMenu() {
+    const menu = document.getElementById('menu-overlay');
+    if (menu && menu.style.display !== 'none') {
+      this.resumeSession();
+    } else {
+      this.openMenu();
+    }
+  }
+
+  async enterArena() {
+    const enterBtn = document.getElementById('btn-enter-arena');
+    if (!this.isRunning) {
+      if (enterBtn) enterBtn.textContent = 'CONNECTING CAMERA...';
+      await this.startCamera();
+      if (enterBtn) enterBtn.textContent = 'ENTER THE ARENA';
+    }
+    this.closeMenu();
+    this.gameState.round = 1;
+    this.retryMatch();
+    this.updateHeaderDisciplineTitle();
+  }
+
+  resumeSession() {
+    this.closeMenu();
+    this.isPaused = false;
+    this.gameState.roundTimer = performance.now();
+  }
+
+  beginNextRound() {
+    const modal = document.getElementById('match-over-modal');
+    if (modal) modal.style.display = 'none';
+
+    this.gameState.round += 1;
+    this.gameState.playerHp = this.gameState.playerMaxHp;
+    this.gameState.playerGhostHp = this.gameState.playerMaxHp;
+    this.gameState.rivalHp = this.gameState.rivalMaxHp;
+    this.gameState.rivalGhostHp = this.gameState.rivalMaxHp;
+    this.gameState.roundTime = 90;
+    this.gameState.roundTimer = performance.now();
+    this.gameState.isMatchOver = false;
+    this.gameState.winner = null;
+    this.gameState.comboCount = 0;
+    this.gameState.comboMultiplier = 1.0;
+
+    this.boxer3D.reset();
+    this.combatAI.reset();
+    this.formChecker.resetStats();
+    this.defenseDetector.reset();
+    this.opponentAttackCooldown = performance.now() + 1000;
+    this.isPaused = false;
+
+    const romanRound = toRoman(this.gameState.round);
+    this.audio.playBell();
+    this.showSplashModal(`ROUND ${romanRound}`, 'COMMENCE');
+    this.updateHeaderDisciplineTitle();
+  }
+
+  openMenuFromSummary() {
+    const modal = document.getElementById('match-over-modal');
+    if (modal) modal.style.display = 'none';
+    this.openMenu();
+  }
+
+  updateHeaderDisciplineTitle() {
+    const titleEl = document.getElementById('header-discipline-title');
+    if (!titleEl) return;
+    if (this.currentMode === 'REFLEX') {
+      titleEl.textContent = `REFLEX SPARRING — ROUND ${toRoman(this.gameState.round)}`;
+    } else {
+      titleEl.textContent = 'FORM COACH — KINEMATIC MASTERY';
+    }
   }
 
   /**
-   * Resets and restarts the match immediately without a page reload
+   * Resets and restarts the round immediately without a page reload
    */
   retryMatch() {
     const modal = document.getElementById('match-over-modal');
@@ -237,10 +300,12 @@ class ShadowBoxingApp {
     this.formChecker.resetStats();
     this.defenseDetector.reset();
     this.opponentAttackCooldown = performance.now() + 1000;
+    this.isPaused = false;
 
+    const romanRound = toRoman(this.gameState.round);
     this.audio.playBell();
-    this.audio.speakAnnouncer('ROUND ONE... FIGHT!');
-    this.showSplashModal('ROUND 1', 'FIGHT!');
+    this.showSplashModal(`ROUND ${romanRound}`, 'COMMENCE');
+    this.updateHeaderDisciplineTitle();
   }
 
   resizeCanvas() {
@@ -260,32 +325,24 @@ class ShadowBoxingApp {
     this.gameState.resetMatch();
     this.combatAI.reset();
     this.updatePanelVisibility();
+    this.updateHeaderDisciplineTitle();
 
     if (mode === 'REFLEX') {
       this.opponentAttackCooldown = performance.now() + 1000;
-      this.audio.speakAnnouncer('REFLEX BRAWL! EVADE AND COUNTER!');
-      this.showSplashModal('REFLEX BRAWL', 'DODGE & COUNTER');
+      this.showSplashModal('REFLEX SPARRING', 'COMMENCE EXCHANGE');
     } else if (mode === 'FORM') {
-      this.audio.speakAnnouncer('FORM COACH! PERFECT YOUR STRIKES!');
-      this.showSplashModal('FORM COACH', 'GUARD & EXTENSION');
+      this.showSplashModal('FORM COACH', 'KINEMATIC MASTERY');
     }
   }
 
   updatePanelVisibility() {
-    const formPanel = document.getElementById('form-checker-panel');
-    const statsPanel = document.getElementById('punch-stats-panel');
     const instructionBanner = document.getElementById('instruction-banner');
-
     if (this.currentMode === 'FORM') {
-      if (formPanel) formPanel.style.display = 'block';
-      if (statsPanel) statsPanel.style.display = 'block';
       if (instructionBanner) {
         instructionBanner.style.display = 'block';
-        instructionBanner.textContent = '🥊 FORM COACH: Keep your hands up guarding your chin. Snap clean punches with hip rotation.';
+        instructionBanner.textContent = 'Camera tracking: punch, block, duck, roll physically to do so in game';
       }
     } else if (this.currentMode === 'REFLEX') {
-      if (formPanel) formPanel.style.display = 'none';
-      if (statsPanel) statsPanel.style.display = 'none';
       if (instructionBanner) instructionBanner.style.display = 'none';
     }
   }
@@ -377,7 +434,7 @@ class ShadowBoxingApp {
       requestAnimationFrame((t) => this.gameLoop(t));
     } catch (err) {
       console.error('Failed to initialize webcam / pose tracking:', err);
-      alert('Camera access is required for skeletal tracking! Please allow camera permissions.');
+      alert('Camera access is required for skeletal tracking. Please allow camera permissions.');
     }
   }
 
@@ -414,8 +471,7 @@ class ShadowBoxingApp {
 
     // 4. Render Background & 3D Virtual Arena with Parallax
     if (this.currentMode === 'REFLEX') {
-      // In Reflex Brawl: Full 3D Championship Boxing Ring, Spotlights, and Arena are rendered by Three.js!
-      this.ctx.fillStyle = '#060911';
+      this.ctx.fillStyle = '#0a0907';
       this.ctx.fillRect(0, 0, width, height);
     } else {
       // FORM MODE: primary camera mirror with gym tint & depth ropes
@@ -424,11 +480,11 @@ class ShadowBoxingApp {
         this.ctx.translate(width, 0);
         this.ctx.scale(-1, 1);
         this.ctx.drawImage(this.video, 0, 0, width, height);
-        this.ctx.fillStyle = 'rgba(8, 11, 18, 0.35)';
+        this.ctx.fillStyle = 'rgba(10, 9, 7, 0.40)';
         this.ctx.fillRect(0, 0, width, height);
         this.ctx.restore();
       } else {
-        this.ctx.fillStyle = '#090c14';
+        this.ctx.fillStyle = '#0a0907';
         this.ctx.fillRect(0, 0, width, height);
       }
       this.vrCamera.drawRingRopes(this.ctx, width, height, width * 0.5, height * 0.5);
@@ -454,7 +510,7 @@ class ShadowBoxingApp {
       defense = this.defenseDetector.detect(mirroredLandmarks);
     }
 
-    // 6. Render Fight World (3D POV Camera in Three.js directly tracks head movement)
+    // 6. Render Fight World
     if (this.currentMode === 'FORM') {
       this.runFormMode(mirroredLandmarks, evaluation, width, height, timestamp, handData);
     } else if (this.currentMode === 'REFLEX') {
@@ -467,7 +523,7 @@ class ShadowBoxingApp {
 
     // 7. Screen-Space Diegetic Overlays (HUD, Round Timer, VR Telemetry, Combat AI)
     if (this.currentMode === 'REFLEX') {
-      const oppName = this.boxer3D.characterType === 'human' ? 'SHANE FAZEN (SPARRING)' : 'TITAN CYBERBOT';
+      const oppName = this.boxer3D.characterType === 'human' ? 'SHANE FAZEN (SPARRING)' : 'TITAN AUTOMATON';
       this.gameState.renderHUD(this.ctx, width, height, oppName);
       this.combatAI.renderHUD(this.ctx, width, height);
     }
@@ -480,44 +536,37 @@ class ShadowBoxingApp {
 
   /**
    * Renders Picture-in-Picture (PIP) Webcam Window in the Bottom Left Corner
-   * Displays the player's mirrored video stream, skeletal overlay, 21-joint hand tracking,
-   * chin guard telemetry, and Spider-Man recentering guides within an arcade broadcast frame.
+   * Clean, minimalist framing with player skeleton & hand tracking overlay
    */
   renderPIPCameraWindow(ctx, video, landmarks, handData, evaluation, defense, screenWidth, screenHeight) {
     if (!video || video.readyState < 2) return;
 
-    // Dimensions: positioned in bottom-left corner
-    const pipW = Math.max(220, Math.min(290, screenWidth * 0.22));
-    const pipH = pipW * 0.65; // ~143px - 188px (16:10 aspect ratio)
-    const pipX = 24;
-    const pipY = screenHeight - pipH - 24;
+    const pipW = Math.max(200, Math.min(270, screenWidth * 0.20));
+    const pipH = pipW * 0.65;
+    const pipX = 28;
+    const pipY = screenHeight - pipH - 28;
 
     ctx.save();
 
-    // 1. Sleek Frosted Background Chassis & Deep Drop Shadow
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
-    ctx.shadowBlur = 20;
-    ctx.fillStyle = '#080d1a';
+    // 1. Sleek Drop Shadow & Dark Backdrop
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = '#0a0907';
     ctx.beginPath();
-    ctx.roundRect(pipX, pipY, pipW, pipH, 10);
+    ctx.roundRect(pipX, pipY, pipW, pipH, 12);
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // 2. Mirrored Webcam Video Clip
+    // 2. Clean Mirrored Webcam Video Clip
     ctx.save();
     ctx.beginPath();
-    ctx.roundRect(pipX + 2, pipY + 2, pipW - 4, pipH - 4, 9);
+    ctx.roundRect(pipX, pipY, pipW, pipH, 12);
     ctx.clip();
 
-    // Draw mirrored video stream inside PIP box
     ctx.save();
     ctx.translate(pipX + pipW, pipY);
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, pipW, pipH);
-
-    // Subtle dark athletic tint for high contrast skeleton visibility
-    ctx.fillStyle = 'rgba(6, 12, 22, 0.25)';
-    ctx.fillRect(0, 0, pipW, pipH);
     ctx.restore();
 
     // 3. Render Player Skeleton Inside PIP Window
@@ -533,80 +582,20 @@ class ShadowBoxingApp {
       this.renderHandJointsInPip(ctx, handData, pipX, pipY, pipW, pipH);
     }
 
-    // 5. Center Guideline inside PIP
-    const centerNormX = this.defenseDetector.baselineHead ? this.defenseDetector.baselineHead.x : 0.5;
-    const guideX = pipX + centerNormX * pipW;
-    ctx.strokeStyle = this.defenseDetector.isLocked ? 'rgba(0, 243, 255, 0.40)' : 'rgba(255, 255, 255, 0.20)';
-    ctx.lineWidth = 1.2;
-    ctx.setLineDash([3, 4]);
+    ctx.restore(); // Exit video clip
+
+    // 5. Clean, Minimalist Border Frame
+    ctx.strokeStyle = 'rgba(212, 160, 60, 0.40)';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(guideX, pipY + 22);
-    ctx.lineTo(guideX, pipY + pipH - 20);
+    ctx.roundRect(pipX, pipY, pipW, pipH, 12);
     ctx.stroke();
-    ctx.setLineDash([]);
-
-    ctx.restore(); // Exit clip
-
-    // 6. Bezel Frame & Corner Brackets
-    ctx.strokeStyle = this.defenseDetector.isLocked ? '#00f3ff' : 'rgba(148, 163, 184, 0.55)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(pipX, pipY, pipW, pipH, 10);
-    ctx.stroke();
-
-    // Corner Ticks (Golden Accents)
-    const bLen = 12;
-    ctx.strokeStyle = '#ffd700';
-    ctx.lineWidth = 2.5;
-    // Top-Left
-    ctx.beginPath(); ctx.moveTo(pipX - 1, pipY + bLen); ctx.lineTo(pipX - 1, pipY - 1); ctx.lineTo(pipX + bLen, pipY - 1); ctx.stroke();
-    // Top-Right
-    ctx.beginPath(); ctx.moveTo(pipX + pipW - bLen, pipY - 1); ctx.lineTo(pipX + pipW + 1, pipY - 1); ctx.lineTo(pipX + pipW + 1, pipY + bLen); ctx.stroke();
-    // Bottom-Left
-    ctx.beginPath(); ctx.moveTo(pipX - 1, pipY + pipH - bLen); ctx.lineTo(pipX - 1, pipY + pipH + 1); ctx.lineTo(pipX + bLen, pipY + pipH + 1); ctx.stroke();
-    // Bottom-Right
-    ctx.beginPath(); ctx.moveTo(pipX + pipW - bLen, pipY + pipH + 1); ctx.lineTo(pipX + pipW + 1, pipY + pipH + 1); ctx.lineTo(pipX + pipW + 1, pipY + bLen); ctx.stroke();
-
-    // 7. Header Bar: LIVE CAM & Chin Guard Pill
-    ctx.fillStyle = 'rgba(8, 14, 24, 0.88)';
-    ctx.fillRect(pipX + 2, pipY + 2, pipW - 4, 20);
-
-    const blink = Math.sin(performance.now() * 0.006) > 0;
-    ctx.fillStyle = blink ? '#ff2244' : '#881122';
-    ctx.beginPath();
-    ctx.arc(pipX + 12, pipY + 12, 3.8, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.font = '800 9px "Russo One", sans-serif';
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'left';
-    ctx.fillText('LIVE CAM • 21-JOINT HANDS', pipX + 20, pipY + 15);
-
-    const isGuardOk = evaluation?.guard?.intact ?? true;
-    ctx.font = '700 8.5px "Plus Jakarta Sans", sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillStyle = isGuardOk ? '#00ff88' : '#ff3366';
-    ctx.fillText(isGuardOk ? '🛡️ CHIN: OK' : '⚠️ CHIN: EXPOSED', pipX + pipW - 8, pipY + 15);
-
-    // 8. Footer Bar: Defense Action & Spider-Man Cue
-    ctx.fillStyle = 'rgba(8, 14, 24, 0.88)';
-    ctx.fillRect(pipX + 2, pipY + pipH - 18, pipW - 4, 16);
-
-    ctx.font = '800 8px "Russo One", sans-serif';
-    ctx.textAlign = 'left';
-    const defText = defense?.action !== 'NONE' ? `EVASION: ${defense.action}` : 'STANCE: NEUTRAL';
-    ctx.fillStyle = defense?.action !== 'NONE' ? '#00f3ff' : '#94a3b8';
-    ctx.fillText(defText, pipX + 8, pipY + pipH - 7);
-
-    ctx.textAlign = 'right';
-    ctx.fillStyle = '#64748b';
-    ctx.fillText('PIP SKELETON', pipX + pipW - 8, pipY + pipH - 7);
 
     ctx.restore();
   }
 
   /**
-   * Renders the 21-joint hand skeleton overlay inside the PIP camera window
+   * Renders the 21-joint hand skeleton overlay inside the PIP camera window with gilded styling
    */
   renderHandJointsInPip(ctx, handData, pipX, pipY, pipW, pipH) {
     const fingerChains = [
@@ -623,9 +612,9 @@ class ShadowBoxingApp {
       const lm = hand.landmarks;
       ctx.save();
 
-      // Finger Bones
+      // Finger Bones (Gilded Gold)
       ctx.lineWidth = 1.6;
-      ctx.strokeStyle = 'rgba(0, 243, 255, 0.75)';
+      ctx.strokeStyle = 'rgba(212, 160, 60, 0.75)';
 
       fingerChains.forEach(chain => {
         ctx.beginPath();
@@ -650,14 +639,14 @@ class ShadowBoxingApp {
       });
       ctx.stroke();
 
-      // Joint Nodes (All 21 joints!)
+      // Joint Nodes (Ivory tips & Gold knuckles)
       lm.forEach((pt, idx) => {
         const px = pipX + pt.x * pipW;
         const py = pipY + pt.y * pipH;
         const isTip = [4, 8, 12, 16, 20].includes(idx);
         const radius = isTip ? 2.8 : 1.8;
 
-        ctx.fillStyle = isTip ? '#ffffff' : '#00f3ff';
+        ctx.fillStyle = isTip ? '#f0ebe0' : '#d4a03c';
         ctx.beginPath();
         ctx.arc(px, py, radius, 0, Math.PI * 2);
         ctx.fill();
@@ -686,36 +675,28 @@ class ShadowBoxingApp {
       this.audio.playImpact(punch.score >= 80);
       this.fx.emitHitSpark(wx, wy, punch.grade);
 
-      const badgeColor = punch.score >= 90 ? '#00f3ff' : punch.score >= 70 ? '#00ff88' : '#ffc700';
-      this.fx.addFloatingBadge(`${punch.grade} ${punch.type}!`, wx, wy - 30, badgeColor, 26);
+      const badgeColor = punch.score >= 90 ? '#eec05a' : punch.score >= 70 ? '#d4a03c' : '#9e3d2b';
+      this.fx.addFloatingBadge(`${punch.grade} ${punch.type}`, wx, wy - 30, badgeColor, 26);
 
       if (punch.speedKmh > 0) {
-        this.fx.addFloatingBadge(`${punch.speedKmh} KM/H`, wx, wy + 12, '#ffffff', 14);
+        this.fx.addFloatingBadge(`${punch.speedKmh} KM/H`, wx, wy + 12, '#f0ebe0', 14);
       }
 
-      if (punch.score >= 90) {
-        this.audio.speakAnnouncer('PERFECT!');
-      } else if (punch.flaws.length > 0) {
-        const topFlaw = punch.flaws[0];
-        if (topFlaw.includes('DROPPED')) {
-          this.audio.speakAnnouncer('KEEP GUARD UP!');
-        } else if (topFlaw.includes('CHICKEN WING')) {
-          this.audio.speakAnnouncer('TUCK ELBOWS!');
-        } else if (topFlaw.includes('HIP')) {
-          this.audio.speakAnnouncer('ROTATE HIPS!');
-        }
-      }
+      // Audio SFX already handled via playImpact
     }
-
-    this.updateFormDOM(evaluation);
-    this.updateStatsDOM();
   }
 
   // ==========================================
-  // MODE 2: REFLEX ARCADE BATTLE (HIGH SPEED)
+  // MODE 2: REFLEX SPARRING
   // ==========================================
   runReflexMode(landmarks, evaluation, defense, handData, width, height, timestamp, dt) {
-    this.gameState.update(timestamp, dt);
+    if (this.isPaused) {
+      this.gameState.roundTimer = timestamp;
+      this.opponentAttackCooldown = timestamp + 1000;
+    } else {
+      this.gameState.update(timestamp, dt);
+    }
+
     const vrOffsets = {
       camX: this.vrCamera.camX,
       camY: this.vrCamera.camY,
@@ -723,27 +704,27 @@ class ShadowBoxingApp {
       roll: this.vrCamera.roll
     };
 
-    // Update 3D Boxer, 3D Boxing Ring, and 3D Translucent Boxing Gloves with 6-DOF Hand Orientation!
+    // Update 3D Boxer, 3D Boxing Ring, and 3D Translucent Gloves
     this.boxer3D.update(timestamp, dt, vrOffsets, handData, landmarks, evaluation, width, height);
 
-    // Couple Perspective 3D Camera with 6-DOF VR Head-Tracking!
+    // Couple Perspective 3D Camera with VR Head-Tracking
     this.boxer3D.render(vrOffsets);
 
-    // 1. Draw 3D Boxer, 3D Boxing Ring, Overhead Spotlights, and 3D Boxing Gloves onto the canvas
+    // 1. Draw 3D Boxer and Ring Scene
     this.ctx.drawImage(this.boxer3D.canvas, 0, 0, width, height);
 
-    // 2. Render Dynamic Holographic Targeting Reticle on screen tracking where the bot hits
+    // 2. Render Dynamic Targeting Reticle
     this.boxer3D.renderTargetingHUD(this.ctx, width, height);
 
-    // 3. Render Picture-in-Picture Webcam Monitor in the Bottom Left Corner (with 21-joint hand skeleton)
+    // 3. Render Picture-in-Picture Webcam Monitor in Bottom Left Corner
     this.renderPIPCameraWindow(this.ctx, this.video, landmarks, handData, evaluation, defense, width, height);
 
-    // Feed real-time player biomechanical telemetry into Combat AI brain
-    if (defense) {
+    // Feed player biomechanical telemetry into Combat AI brain
+    if (defense && !this.isPaused) {
       this.combatAI.recordPlayerTelemetry(defense, evaluation, timestamp);
     }
 
-    // Match Over Check
+    // Unified Post-Round Performance Analysis Screen Check
     if (this.gameState.isMatchOver) {
       const modal = document.getElementById('match-over-modal');
       const badge = document.getElementById('match-badge');
@@ -753,32 +734,72 @@ class ShadowBoxingApp {
       const statCounters = document.getElementById('m-stat-counters');
       const statScore = document.getElementById('m-stat-score');
 
+      // Breakdown Grid Elements
+      const formAcc = document.getElementById('summary-form-accuracy');
+      const meterFill = document.getElementById('summary-meter-fill');
+      const guardStatus = document.getElementById('summary-guard-status');
+      const balanceStatus = document.getElementById('summary-balance-status');
+
+      const totalStrikes = document.getElementById('summary-total-strikes');
+      const jabs = document.getElementById('summary-jabs');
+      const crosses = document.getElementById('summary-crosses');
+      const hooks = document.getElementById('summary-hooks');
+      const uppers = document.getElementById('summary-uppers');
+
       if (modal && modal.style.display !== 'flex') {
         modal.style.display = 'flex';
 
+        const romanRound = toRoman(this.gameState.round);
+        if (badge) badge.textContent = `ROUND ${romanRound} COMPLETE`;
+
         if (this.gameState.winner === 'PLAYER') {
-          if (badge) { badge.textContent = 'KNOCKOUT VICTORY'; badge.style.color = '#ffd700'; }
-          if (title) title.textContent = '🏆 CHAMPION!';
-          if (sub) sub.textContent = 'YOU KNOCKED OUT THE OPPONENT!';
+          if (title) title.textContent = 'Victory';
+          if (sub) sub.textContent = 'Kinematic mastery established through superior evasion and counter-striking cadence.';
           this.audio.playVictoryTune();
-          this.audio.speakAnnouncer('KNOCKOUT! YOU WIN!');
           this.fx.triggerVictoryConfetti();
           this.boxer3D.knockout();
         } else {
-          if (badge) { badge.textContent = 'TKO DEFEAT'; badge.style.color = '#ff3366'; }
-          if (title) title.textContent = '💥 KNOCKED OUT!';
-          if (sub) sub.textContent = 'DUST YOURSELF OFF AND RETRY!';
-          this.audio.speakAnnouncer('KNOCKOUT! TRY AGAIN!');
+          if (title) title.textContent = 'Technical Conclusion';
+          if (sub) sub.textContent = 'The exchange concluded. Recalibrate defense and stance alignment for the next round.';
         }
 
+        // Top-line stats
         if (statPunches) statPunches.textContent = this.formChecker.stats.totalPunches;
         if (statCounters) statCounters.textContent = this.combatAI.profiler.playerCounterStrikes;
         if (statScore) statScore.textContent = this.gameState.score;
+
+        // Kinematic Mastery breakdown
+        const avgScore = this.formChecker.stats.averageScore || 100;
+        if (formAcc) formAcc.textContent = `${avgScore}%`;
+        if (meterFill) meterFill.style.width = `${avgScore}%`;
+
+        const droppedGuardCount = this.formChecker.stats.flawsCount?.droppedGuard || 0;
+        const isGuardOk = droppedGuardCount <= 1;
+        if (guardStatus) {
+          guardStatus.textContent = isGuardOk ? 'Protected' : 'Exposed';
+          guardStatus.className = isGuardOk ? 'summary-status-badge status-good' : 'summary-status-badge status-warning';
+        }
+
+        const offBalanceCount = this.formChecker.stats.flawsCount?.offBalance || 0;
+        const isBalanceOk = offBalanceCount <= 1;
+        if (balanceStatus) {
+          balanceStatus.textContent = isBalanceOk ? 'Optimal' : 'Off-Balance';
+          balanceStatus.className = isBalanceOk ? 'summary-status-badge status-good' : 'summary-status-badge status-warning';
+        }
+
+        // Strike Registry breakdown
+        if (totalStrikes) totalStrikes.textContent = this.formChecker.stats.totalPunches;
+        if (jabs) jabs.textContent = this.formChecker.stats.jabs;
+        if (crosses) crosses.textContent = this.formChecker.stats.crosses;
+        if (hooks) hooks.textContent = this.formChecker.stats.hooks;
+        if (uppers) uppers.textContent = this.formChecker.stats.uppercuts;
       }
       return;
     }
 
-    // Smart CPU Bot Combat Decision (Combos, Feints, and Adaptive Punishes)
+    if (this.isPaused) return;
+
+    // CPU Bot Combat Decision
     if (this.boxer3D.state === 'IDLE' && timestamp > this.opponentAttackCooldown) {
       const decision = this.combatAI.decideNextAction(timestamp);
 
@@ -793,7 +814,7 @@ class ShadowBoxingApp {
       }
     }
 
-    // Check Player Evasion during Strike Frame (Single Strikes & Multi-Strike Combos)
+    // Check Player Evasion during Strike Frame
     const isStrikeActive = (this.boxer3D.state === 'STRIKING' || this.boxer3D.state === 'COMBO_STRIKING');
 
     if (isStrikeActive && !this.boxer3D.stepEvaluated) {
@@ -802,7 +823,6 @@ class ShadowBoxingApp {
       let evaded = false;
 
       if (isFeint) {
-        // Feint tests player discipline without dealing damage
         evaded = true;
         this.boxer3D.recordComboStepEvaded(true);
         this.audio.playWhoosh(1.4);
@@ -824,7 +844,7 @@ class ShadowBoxingApp {
         const hy = hit.screenPos.y;
 
         if (this.boxer3D.activeCombo) {
-          // --- MULTI-STRIKE COMBINATION BRANCH ---
+          // Combination Branch
           const stepIdx = this.boxer3D.comboStepIndex;
           const totalSteps = this.boxer3D.comboTotalSteps;
           const stepDmg = this.boxer3D.activeStepDef?.damage || 140;
@@ -838,34 +858,31 @@ class ShadowBoxingApp {
 
             const isLastStep = stepIdx >= totalSteps - 1;
             if (isLastStep && this.boxer3D.comboFullyEvaded) {
-              // Mastered the combination: full evasion!
               const superBonus = this.boxer3D.activeCombo.superBonus || 40;
               this.gameState.addSuper(superBonus);
-              this.audio.speakAnnouncer('COMBO DENIED!');
-              this.fx.addFloatingBadge('🔥 FULL COMBO EVADED! MASSIVE PUNISH! 🔥', hx, hy - 45, '#ffc700', 32);
+              this.fx.addFloatingBadge('FULL SEQUENCE DEFENDED — APEX COUNTER', hx, hy - 45, '#eec05a', 30);
               this.combatAI.onPlayerEvaded(true, true);
             } else {
-              this.fx.addFloatingBadge(`⚡ EVADED [${stepIdx + 1}/${totalSteps}]! ⚡`, hx, hy - 30, '#00ff88', 24);
+              this.fx.addFloatingBadge(`SEQUENCE EVADED (${toRoman(stepIdx + 1)} / ${toRoman(totalSteps)})`, hx, hy - 30, '#d4a03c', 24);
               this.combatAI.onPlayerEvaded(true, false);
             }
           } else {
-            // Player got clipped during combo
             this.boxer3D.recordComboStepEvaded(false);
             this.audio.playImpact(true);
             this.gameState.damagePlayer(stepDmg);
             this.fx.addTrauma(0.45);
             this.fx.emitHitSpark(hx, hy, 'BAD');
-            this.fx.addFloatingBadge(`💥 CLIPPED! [${stepIdx + 1}/${totalSteps}] 💥`, hx, hy, '#ff3366', 28);
+            this.fx.addFloatingBadge(`STRIKE CONCEDED (${toRoman(stepIdx + 1)} / ${toRoman(totalSteps)})`, hx, hy, '#9e3d2b', 28);
             this.combatAI.onHitLanded(true, stepDmg);
           }
         } else {
-          // --- SINGLE STRIKE BRANCH ---
+          // Single Strike Branch
           this.boxer3D.stepEvaluated = true;
           if (evaded) {
             this.audio.playWhoosh(1.2);
             this.audio.playBlock();
             this.fx.emitHitSpark(hx, hy, 'PERFECT');
-            this.fx.addFloatingBadge('⚡ SLIPPED! COUNTER NOW! ⚡', hx, hy - 30, '#00ff88', 26);
+            this.fx.addFloatingBadge('SLIP RECORDED — EXECUTE COUNTER', hx, hy - 30, '#d4a03c', 26);
             this.gameState.addSuper(15);
             this.boxer3D.openOpeningWindow(timestamp);
             this.combatAI.onPlayerEvaded(false, false);
@@ -874,7 +891,7 @@ class ShadowBoxingApp {
             this.gameState.damagePlayer(55);
             this.fx.addTrauma(0.5);
             this.fx.emitHitSpark(hx, hy, 'BAD');
-            this.fx.addFloatingBadge('💥 HIT! (-55 HP) 💥', hx, hy, '#ff3366', 30);
+            this.fx.addFloatingBadge('STRIKE CONCEDED (-55 HP)', hx, hy, '#9e3d2b', 28);
             this.boxer3D.state = 'RECOVERING';
             this.boxer3D.stateTimer = timestamp;
             this.combatAI.onHitLanded(false, 55);
@@ -883,7 +900,7 @@ class ShadowBoxingApp {
       }
     }
 
-    // Player Punch Tracking (Punish Counters during Openings vs Intelligent Dynamic Bot Defense in Neutral)
+    // Player Punch Tracking
     if (evaluation.punchEvent) {
       const punch = evaluation.punchEvent;
       const wx = punch.wristPos.x * width;
@@ -892,110 +909,92 @@ class ShadowBoxingApp {
       const isMassive = this.boxer3D.massiveCounter;
 
       if (isVulnerable) {
-        // Realistic Boxing Punish Counter Damage (Balanced against 2500 Max HP)
         let baseDmg = 50;
         let announcerCall = 'COUNTER!';
-        let badgeText = '⚡ COUNTER!';
-        let badgeColor = '#ffc700';
+        let badgeText = 'COUNTER STRIKE';
+        let badgeColor = '#d4a03c';
 
         if (punch.type.includes('UPPERCUT')) {
           baseDmg = 135;
           announcerCall = 'UPPERCUT COUNTER!';
-          badgeText = '⚡⚡ RISING UPPERCUT PUNISH! ⚡⚡';
-          badgeColor = '#00ff88';
+          badgeText = 'RISING UPPERCUT PUNISH';
+          badgeColor = '#eec05a';
         } else if (punch.type.includes('HOOK')) {
           baseDmg = 105;
           announcerCall = 'HOOK PUNISH!';
-          badgeText = '🔥 HOOK PUNISH! 🔥';
-          badgeColor = '#ff0055';
+          badgeText = 'HOOK COUNTERPOISE';
+          badgeColor = '#d4a03c';
         } else if (punch.type === 'CROSS') {
           baseDmg = 80;
           announcerCall = 'POWER CROSS!';
-          badgeText = '💥 POWER CROSS! 💥';
-          badgeColor = '#ffc700';
+          badgeText = 'POWER CROSS CADENCE';
+          badgeColor = '#eec05a';
         } else {
           baseDmg = 50;
           announcerCall = 'STIFF JAB!';
-          badgeText = '🥊 STIFF JAB COUNTER!';
-          badgeColor = '#00f3ff';
+          badgeText = 'JAB INTERCEPT';
+          badgeColor = '#d4a03c';
         }
 
         const finalDmg = Math.round(baseDmg * (isMassive ? 1.30 : 1.0));
         this.audio.playImpact(true);
-        this.audio.speakAnnouncer(announcerCall);
         this.hitstopTimer = timestamp + (isMassive ? 140 : 100);
         this.boxer3D.takeHit(finalDmg, punch.type);
         this.gameState.damageRival(finalDmg);
         this.gameState.addSuper(isMassive ? 18 : 12);
         this.fx.addTrauma(isMassive ? 0.70 : 0.50);
         this.fx.emitHitSpark(wx, wy, 'PERFECT');
-        this.fx.addFloatingBadge(`${badgeText} (+${finalDmg} DMG)`, wx, wy - 35, badgeColor, 32);
+        this.fx.addFloatingBadge(`${badgeText} (+${finalDmg} DMG)`, wx, wy - 35, badgeColor, 30);
         this.combatAI.profiler.playerCounterStrikes++;
       } else {
-        // --- NEUTRAL EXCHANGE: INTELLIGENT BOT DEFENSE & ANTI-FLURRY MECHANICS ---
-        const diff = this.combatAI.difficulty || 'PRO';
-        // Defense probabilities aligned to user request:
-        // ROOKIE = 65% (Medium level, like old champion)
-        // PRO = 88% (Tougher, blocks and slips active flurries)
-        // CHAMPION = 98% (One step ahead: masterclass anticipation & counters)
-        const defenseProb = (diff === 'ROOKIE') ? 0.65 : (diff === 'CHAMPION') ? 0.98 : 0.88;
+        // Neutral Exchange
+        const diff = this.combatAI.difficulty || 'PROFESSIONAL';
+        const defenseProb = (diff === 'NOVICE') ? 0.65 : (diff === 'CHAMPION') ? 0.98 : 0.88;
 
-        // 1. If bot is ALREADY in DEFENDING state (High Guard or Slipping/Ducking):
         if (this.boxer3D.state === 'DEFENDING') {
           this.playerSpamFlurryCount = (this.playerSpamFlurryCount || 0) + 1;
 
           if (this.boxer3D.defenseType === 'BLOCK') {
-            // High Guard stays locked and absorbs subsequent spam punches
             this.audio.playBlock();
             this.gameState.damageRival(8);
             this.fx.emitHitSpark(wx, wy, 'GOOD');
-            this.fx.addFloatingBadge('🛡️ FLURRY BLOCKED! (+8 CHIP)', wx, wy - 25, '#94a3b8', 22);
-
-            // Extend high guard duration so it stays up throughout the player's flurry
+            this.fx.addFloatingBadge('FLURRY DEFENDED (+8 CHIP)', wx, wy - 25, '#968c7e', 22);
             this.boxer3D.defenseDuration = Math.min(700, this.boxer3D.defenseDuration + 150);
 
-            // Anti-Spam Flurry Counter: If player throws 2 or more rapid punches into guard
-            if (this.playerSpamFlurryCount >= 2 && diff !== 'ROOKIE') {
+            if (this.playerSpamFlurryCount >= 2 && diff !== 'NOVICE') {
               const counterProb = (diff === 'CHAMPION') ? 0.95 : 0.70;
               if (Math.random() < counterProb && !this.gameState.isMatchOver) {
                 this.playerSpamFlurryCount = 0;
                 this.audio.playWhoosh(1.4);
                 this.boxer3D.startAttack(diff === 'CHAMPION' ? 'RIGHT_CROSS' : 'LEFT_HOOK', 280);
-                this.fx.addFloatingBadge('⚡ FLURRY PARRIED! BOT COUNTERS!', wx, wy - 40, '#ff0055', 30);
+                this.fx.addFloatingBadge('CADENCE PARRIED — BOT COUNTERS', wx, wy - 40, '#9e3d2b', 28);
               }
             }
           } else {
-            // Bot is ducking or slipping off centerline: flurry punch misses cleanly
             this.audio.playWhoosh(1.4);
-            this.fx.addFloatingBadge('💨 FLURRY EVADED! (MISSED)', wx, wy - 30, '#00ff88', 26);
+            this.fx.addFloatingBadge('FLURRY EVADED — CLEAN MISS', wx, wy - 30, '#d4a03c', 24);
 
-            if (this.playerSpamFlurryCount >= 2 && diff !== 'ROOKIE') {
+            if (this.playerSpamFlurryCount >= 2 && diff !== 'NOVICE') {
               this.playerSpamFlurryCount = 0;
               this.boxer3D.startAttack('UPPERCUT', 290);
-              this.fx.addFloatingBadge('⚡ SLIP & RIP COUNTER!', wx, wy - 40, '#ff0055', 30);
+              this.fx.addFloatingBadge('SLIP & RIP COUNTER', wx, wy - 40, '#9e3d2b', 28);
             }
           }
-        }
-        // 2. If bot is in HURT recoil and player tries to spam/stun-lock:
-        else if (this.boxer3D.state === 'HURT') {
-          if (diff === 'CHAMPION' || (diff === 'PRO' && Math.random() < 0.85)) {
-            // Pro & Champion recover tight guard immediately to prevent spam stun-locks
+        } else if (this.boxer3D.state === 'HURT') {
+          if (diff === 'CHAMPION' || (diff === 'PROFESSIONAL' && Math.random() < 0.85)) {
             this.boxer3D.defend('BLOCK');
             this.audio.playBlock();
             this.gameState.damageRival(8);
             this.fx.emitHitSpark(wx, wy, 'GOOD');
-            this.fx.addFloatingBadge('🛡️ GUARD RECOVERED!', wx, wy - 25, '#38bdf8', 22);
+            this.fx.addFloatingBadge('GUARD RECOVERED', wx, wy - 25, '#d4a03c', 22);
           } else {
-            // Rookie can take a follow-up hit
             this.audio.playImpact(false);
             this.boxer3D.takeHit(35, punch.type);
             this.gameState.damageRival(35);
             this.fx.emitHitSpark(wx, wy, 'GOOD');
-            this.fx.addFloatingBadge('💥 COMBO CLIP! (+35 DMG)', wx, wy - 30, '#ffaa00', 26);
+            this.fx.addFloatingBadge('SEQUENCE CLIP (+35 DMG)', wx, wy - 30, '#d4a03c', 26);
           }
-        }
-        // 3. Bot is in IDLE / Neutral:
-        else {
+        } else {
           this.playerSpamFlurryCount = 0;
           const roll = Math.random();
 
@@ -1017,8 +1016,8 @@ class ShadowBoxingApp {
 
             if (defenseType === 'DUCK') {
               this.audio.playWhoosh(1.5);
-              this.fx.addFloatingBadge('💨 BOT DUCKED UNDER! (MISSED)', wx, wy - 35, '#00ff88', 26);
-              if (diff !== 'ROOKIE' && Math.random() < (diff === 'CHAMPION' ? 0.80 : 0.50)) {
+              this.fx.addFloatingBadge('OPPONENT DUCKED UNDER', wx, wy - 35, '#968c7e', 24);
+              if (diff !== 'NOVICE' && Math.random() < (diff === 'CHAMPION' ? 0.80 : 0.50)) {
                 setTimeout(() => {
                   if (this.boxer3D.state === 'IDLE' && !this.gameState.isMatchOver) {
                     this.boxer3D.startAttack('UPPERCUT', 320);
@@ -1029,8 +1028,8 @@ class ShadowBoxingApp {
             } else if (defenseType === 'SLIP_LEFT' || defenseType === 'SLIP_RIGHT') {
               this.audio.playWhoosh(1.4);
               const dir = (defenseType === 'SLIP_LEFT') ? 'LEFT' : 'RIGHT';
-              this.fx.addFloatingBadge(`⚡ BOT SLIPPED ${dir}! (MISSED)`, wx, wy - 35, '#00f3ff', 26);
-              if (diff !== 'ROOKIE' && Math.random() < (diff === 'CHAMPION' ? 0.75 : 0.45)) {
+              this.fx.addFloatingBadge(`OPPONENT SLIPPED ${dir}`, wx, wy - 35, '#968c7e', 24);
+              if (diff !== 'NOVICE' && Math.random() < (diff === 'CHAMPION' ? 0.75 : 0.45)) {
                 setTimeout(() => {
                   if (this.boxer3D.state === 'IDLE' && !this.gameState.isMatchOver) {
                     this.boxer3D.startAttack('RIGHT_CROSS', 300);
@@ -1039,66 +1038,22 @@ class ShadowBoxingApp {
                 }, 390);
               }
             } else {
-              // High Guard Block
               this.audio.playBlock();
               this.gameState.damageRival(10);
               this.fx.emitHitSpark(wx, wy, 'GOOD');
-              this.fx.addFloatingBadge('🛡️ BOT BLOCKED! (+10 CHIP)', wx, wy - 25, '#94a3b8', 22);
+              this.fx.addFloatingBadge('OPPONENT BLOCKED (+10 CHIP)', wx, wy - 25, '#968c7e', 22);
             }
           } else {
-            // Bot caught flat-footed in neutral (primarily on Rookie):
             this.audio.playImpact(false);
             this.boxer3D.takeHit(35, punch.type);
             this.gameState.damageRival(35);
             this.gameState.addSuper(6);
             this.fx.emitHitSpark(wx, wy, 'PERFECT');
-            this.fx.addFloatingBadge(`💥 CLEAN HIT! (+35 DMG)`, wx, wy - 30, '#ffc700', 28);
+            this.fx.addFloatingBadge('CLEAN STRIKE (+35 DMG)', wx, wy - 30, '#eec05a', 28);
           }
         }
       }
     }
-
-    this.updateStatsDOM();
-  }
-
-  updateFormDOM(evaluation) {
-    const scoreVal = document.getElementById('form-score-val');
-    const meterFill = document.getElementById('meter-fill');
-    const guardStatus = document.getElementById('guard-status-val');
-    const guardCard = document.getElementById('guard-status-card');
-    const balanceStatus = document.getElementById('balance-status-val');
-    const balanceCard = document.getElementById('balance-status-card');
-
-    if (scoreVal) scoreVal.textContent = `${this.formChecker.stats.averageScore}%`;
-    if (meterFill) meterFill.style.width = `${this.formChecker.stats.averageScore}%`;
-
-    if (guardStatus && guardCard) {
-      const isGuardOk = evaluation.guard && evaluation.guard.intact;
-      guardStatus.textContent = isGuardOk ? 'PROTECTED' : 'EXPOSED';
-      guardStatus.style.color = isGuardOk ? '#00ff88' : '#ff3366';
-      guardCard.className = isGuardOk ? 'status-card' : 'status-card warning';
-    }
-
-    if (balanceStatus && balanceCard) {
-      const isBalanced = evaluation.balance && evaluation.balance.isBalanced;
-      balanceStatus.textContent = isBalanced ? 'CENTERED' : 'OFF BALANCE';
-      balanceStatus.style.color = isBalanced ? '#00ff88' : '#ffc700';
-      balanceCard.className = isBalanced ? 'status-card' : 'status-card warning';
-    }
-  }
-
-  updateStatsDOM() {
-    const totalEl = document.getElementById('stat-total-punches');
-    const jabsEl = document.getElementById('stat-jabs');
-    const crossesEl = document.getElementById('stat-crosses');
-    const hooksEl = document.getElementById('stat-hooks');
-    const uppersEl = document.getElementById('stat-uppers');
-
-    if (totalEl) totalEl.textContent = this.formChecker.stats.totalPunches;
-    if (jabsEl) jabsEl.textContent = this.formChecker.stats.jabs;
-    if (crossesEl) crossesEl.textContent = this.formChecker.stats.crosses;
-    if (hooksEl) hooksEl.textContent = this.formChecker.stats.hooks;
-    if (uppersEl) uppersEl.textContent = this.formChecker.stats.uppercuts;
   }
 }
 

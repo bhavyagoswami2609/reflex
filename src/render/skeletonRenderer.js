@@ -184,7 +184,7 @@ export class SkeletonRenderer {
     ctx.stroke();
 
     // Crisp label
-    ctx.font = '900 10px "Russo One", sans-serif';
+    ctx.font = '700 11px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
     ctx.fillStyle = isIntact ? '#00ff66' : '#ff3366';
     ctx.shadowBlur = 0;

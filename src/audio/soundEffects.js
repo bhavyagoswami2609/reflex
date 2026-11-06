@@ -7,7 +7,7 @@ export class ArcadeAudioEngine {
   constructor() {
     this.ctx = null;
     this.muted = false;
-    this.voiceEnabled = true;
+    this.voiceEnabled = false;
     this.masterGain = null;
   }
 
@@ -269,20 +269,14 @@ export class ArcadeAudioEngine {
     }
   }
 
-  // 8. Controlled, Non-intrusive Announcer Voice
+  // 8. Announcer Voice (Disabled per user request)
   speakAnnouncer(phrase) {
-    if (this.muted || !this.voiceEnabled) return;
-    if (!('speechSynthesis' in window)) return;
-
-    try {
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(phrase);
-      utter.rate = 1.0;
-      utter.pitch = 0.95;
-      utter.volume = 0.65; // Pleasant, non-overwhelming volume
-      window.speechSynthesis.speak(utter);
-    } catch (e) {
-      console.warn('Speech error:', e);
+    if ('speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch (e) {
+        // Ignore
+      }
     }
   }
 }

@@ -1,42 +1,40 @@
 /**
- * Smart "CPU Bot" AI Combat Engine for SHADOW BRAWLER
- * 
- * Features:
- * - Real-Time Player Profiler & Adaptive Habit Learning
- * - Fight Archetypes: PROBING, TACTICAL_ADAPTIVE, PRESSURE_COMBOS, COUNTER_PUNCHER, DESPERATION_OVERDRIVE
- * - Intelligent Counter-Combo & Feint Selection
- * - Live Cybernetic AI Psychological Callouts & HUD Telemetry
+ * Palestra Combat AI Engine
+ * Classical Pugilism & Adaptive Telemetry:
+ * - Real-Time Player Profiler & Kinematic Habit Learning
+ * - Classical Pugilism Archetypes: PALESTRA PROBING, TACTICAL COUNTERPOISE, IMPERIAL BARRAGE, CLASSICAL CADENCE, FERVENCY APEX
+ * - Classical Pugilism Terminology and Dark Luxury HUD
  */
 
 import { COMBO_DEFINITIONS, getCounterComboForHabit } from './boxingCombos.js';
 
 /**
- * Bot Difficulty Configurations
+ * Opponent Rigor / Difficulty Configurations
  */
 export const DIFFICULTY_CONFIGS = {
-  ROOKIE: {
-    id: 'ROOKIE',
-    name: 'ROOKIE',
-    label: 'ROOKIE',
+  NOVICE: {
+    id: 'NOVICE',
+    name: 'NOVICE',
+    label: 'NOVICE',
     speedMultiplier: 0.92,
     cooldownMultiplier: 1.25,
     comboProbabilityMultiplier: 0.8,
     openingDurationMultiplier: 1.25,
     idleOpeningIntervalMs: 6500,
-    defenseProbability: 0.65, // Solid medium baseline (equivalent to old champion)
-    color: '#00ff88'
+    defenseProbability: 0.65,
+    color: '#d4a03c'
   },
-  PRO: {
-    id: 'PRO',
-    name: 'PRO',
-    label: 'PRO',
+  PROFESSIONAL: {
+    id: 'PROFESSIONAL',
+    name: 'PROFESSIONAL',
+    label: 'PROFESSIONAL',
     speedMultiplier: 1.15,
     cooldownMultiplier: 0.90,
     comboProbabilityMultiplier: 1.2,
     openingDurationMultiplier: 0.95,
     idleOpeningIntervalMs: 8500,
-    defenseProbability: 0.88, // Harder: actively blocks flurries, slips, and counters
-    color: '#00f3ff'
+    defenseProbability: 0.88,
+    color: '#eec05a'
   },
   CHAMPION: {
     id: 'CHAMPION',
@@ -47,21 +45,25 @@ export const DIFFICULTY_CONFIGS = {
     comboProbabilityMultiplier: 1.5,
     openingDurationMultiplier: 0.70,
     idleOpeningIntervalMs: 13500,
-    defenseProbability: 0.98, // Elite: one step ahead, weaves flurries, instantaneous counters
-    color: '#ff0055'
+    defenseProbability: 0.98,
+    color: '#9e3d2b'
   }
 };
+
+// Aliases for compatibility
+DIFFICULTY_CONFIGS.ROOKIE = DIFFICULTY_CONFIGS.NOVICE;
+DIFFICULTY_CONFIGS.PRO = DIFFICULTY_CONFIGS.PROFESSIONAL;
 
 export class CombatAI {
   constructor(boxer3D, gameState) {
     this.boxer3D = boxer3D;
     this.gameState = gameState;
 
-    // Difficulty Settings: 'ROOKIE' | 'PRO' | 'CHAMPION'
-    this.difficulty = 'PRO';
+    // Rigor: 'NOVICE' | 'PROFESSIONAL' | 'CHAMPION'
+    this.difficulty = 'PROFESSIONAL';
 
     // Current AI State & Archetype
-    this.currentArchetype = 'PROBING'; // PROBING, TACTICAL_ADAPTIVE, PRESSURE_COMBOS, COUNTER_PUNCHER, DESPERATION_OVERDRIVE
+    this.currentArchetype = 'PROBING';
     this.previousArchetype = 'PROBING';
     
     // Player Profiler Telemetry
@@ -76,18 +78,18 @@ export class CombatAI {
       playerCounterStrikes: 0,
       lastRecordedDefense: 'NONE',
       detectedHabit: 'NONE',
-      confidence: 0 // 0 to 1
+      confidence: 0
     };
 
     // Tactical Thought Telemetry
-    this.currentThought = '🧠 AI TACTIC: PROBING GUARD WITH LEAD JAB...';
+    this.currentThought = 'PALESTRA PROBING: DISTANCE APPRAISAL WITH LEAD JAB';
     this.thoughtTimestamp = performance.now();
-    this.thoughtColor = '#00f3ff'; // Cyan default
-    this.thoughtDuration = 3200; // ms
+    this.thoughtColor = '#d4a03c';
+    this.thoughtDuration = 3200;
 
     // Cooldowns & Pacing
     this.nextDecisionTime = performance.now() + 1000;
-    this.lastActionType = 'STRIKE'; // 'STRIKE' | 'COMBO' | 'FEINT'
+    this.lastActionType = 'STRIKE';
     this.consecutiveHitsOnPlayer = 0;
     this.consecutivePlayerEvades = 0;
 
@@ -98,40 +100,40 @@ export class CombatAI {
         feintProbability: 0.10,
         speedMultiplier: 1.0,
         cooldownMs: 850,
-        color: '#00f3ff',
-        label: 'TACTICAL PROBING'
+        color: '#d4a03c',
+        label: 'DISTANCE APPRAISAL'
       },
       TACTICAL_ADAPTIVE: {
         comboProbability: 0.70,
         feintProbability: 0.25,
         speedMultiplier: 1.12,
         cooldownMs: 700,
-        color: '#ffc700',
-        label: 'ADAPTIVE INTERCEPT'
+        color: '#eec05a',
+        label: 'TACTICAL COUNTERPOISE'
       },
       PRESSURE_COMBOS: {
         comboProbability: 0.85,
         feintProbability: 0.15,
         speedMultiplier: 1.18,
         cooldownMs: 580,
-        color: '#ff0055',
-        label: 'PRESSURE BARRAGE'
+        color: '#9e3d2b',
+        label: 'IMPERIAL BARRAGE'
       },
       COUNTER_PUNCHER: {
         comboProbability: 0.65,
         feintProbability: 0.20,
         speedMultiplier: 1.15,
         cooldownMs: 650,
-        color: '#00ff88',
-        label: 'COUNTER MATRIX'
+        color: '#d4a03c',
+        label: 'CLASSICAL CADENCE'
       },
       DESPERATION_OVERDRIVE: {
         comboProbability: 0.92,
         feintProbability: 0.30,
         speedMultiplier: 1.28,
         cooldownMs: 450,
-        color: '#ff2255',
-        label: 'OVERDRIVE MAXIMUM'
+        color: '#9e3d2b',
+        label: 'FERVENCY APEX'
       }
     };
   }
@@ -154,9 +156,9 @@ export class CombatAI {
       detectedHabit: 'NONE',
       confidence: 0
     };
-    this.currentThought = '🧠 AI INITIALIZED: SCANNING PLAYER DEFENSE PROTOCOLS...';
+    this.currentThought = 'PALESTRA REGISTRY: SCANNING OPPONENT STANCE PROTOCOLS';
     this.thoughtTimestamp = performance.now();
-    this.thoughtColor = '#00f3ff';
+    this.thoughtColor = '#d4a03c';
     this.nextDecisionTime = performance.now() + 1000;
     this.consecutiveHitsOnPlayer = 0;
     this.consecutivePlayerEvades = 0;
@@ -164,9 +166,6 @@ export class CombatAI {
 
   /**
    * Record real-time player telemetry from biomechanical detector
-   * @param {Object} defense Active defense state from DefenseDetector
-   * @param {Object} evaluation Biomechanical evaluation from FormChecker
-   * @param {number} timestamp Current performance timestamp
    */
   recordPlayerTelemetry(defense, evaluation, timestamp) {
     if (!defense) return;
@@ -174,7 +173,6 @@ export class CombatAI {
     // Detect premature evasions while bot is in WINDUP
     if (this.boxer3D.state === 'WINDUP' || this.boxer3D.state === 'COMBO_WINDUP') {
       const elapsed = timestamp - this.boxer3D.stateTimer;
-      // If player slips or ducks during the first 60% of windup, flag as premature evasion
       if (elapsed > 100 && elapsed < (this.boxer3D.windupDuration * 0.65)) {
         if (defense.slipLeft || defense.slipRight || defense.ducking) {
           this.profiler.prematureEvasionCount++;
@@ -203,7 +201,6 @@ export class CombatAI {
       }
     }
 
-    // Periodically update habit analysis
     this.evaluatePlayerHabits();
   }
 
@@ -218,7 +215,6 @@ export class CombatAI {
     const blockRatio = this.profiler.highGuardCount / total;
     const prematureRatio = this.profiler.prematureEvasionCount / Math.max(1, total * 0.3);
 
-    // Identify primary habit
     let habit = 'NONE';
     let confidence = 0;
 
@@ -245,7 +241,6 @@ export class CombatAI {
     this.profiler.detectedHabit = habit;
     this.profiler.confidence = confidence;
 
-    // Dynamic Archetype Evolution
     this.updateArchetype();
   }
 
@@ -257,34 +252,34 @@ export class CombatAI {
     const playerHp = this.gameState.playerHp;
     const roundTime = this.gameState.roundTime;
 
-    // 1. DESPERATION OVERDRIVE: Bot health <= 30%
+    // 1. FERVENCY APEX: Bot health <= 30%
     if (rivalHp <= 300) {
       if (this.currentArchetype !== 'DESPERATION_OVERDRIVE') {
-        this.setArchetype('DESPERATION_OVERDRIVE', '🧠 OVERDRIVE: DESPERATION PROTOCOL ENGAGED! FULL SPEED!', '#ff2255');
+        this.setArchetype('DESPERATION_OVERDRIVE', 'FERVENCY APEX: CONVICTION PROTOCOL ENGAGED', '#9e3d2b');
       }
       return;
     }
 
-    // 2. PRESSURE COMBOS: Player health low or turtling in guard
+    // 2. IMPERIAL BARRAGE: Player health low or turtling in guard
     if (playerHp <= 400 || this.profiler.detectedHabit === 'HABIT_HIGH_GUARD') {
       if (this.currentArchetype !== 'PRESSURE_COMBOS') {
-        this.setArchetype('PRESSURE_COMBOS', '🧠 AI TACTIC: OPPONENT WEAKENED → UNLEASHING PRESSURE FLURRY!', '#ff0055');
+        this.setArchetype('PRESSURE_COMBOS', 'IMPERIAL BARRAGE: UNLEASHING FLURRY CADENCE', '#9e3d2b');
       }
       return;
     }
 
-    // 3. COUNTER PUNCHER: Player is aggressive with counters
+    // 3. CLASSICAL CADENCE: Player is aggressive with counters
     if (this.profiler.detectedHabit === 'HABIT_AGGRESSIVE_COUNTER') {
       if (this.currentArchetype !== 'COUNTER_PUNCHER') {
-        this.setArchetype('COUNTER_PUNCHER', '🧠 AI ADAPTING: COUNTERING YOUR AGGRESSIVE RHYTHM!', '#00ff88');
+        this.setArchetype('COUNTER_PUNCHER', 'CLASSICAL CADENCE: COUNTERING OPPONENT RHYTHM', '#d4a03c');
       }
       return;
     }
 
-    // 4. TACTICAL ADAPTIVE: High confidence habit detected
+    // 4. TACTICAL COUNTERPOISE: High confidence habit detected
     if (this.profiler.confidence >= 0.45 && this.profiler.detectedHabit !== 'NONE') {
       if (this.currentArchetype !== 'TACTICAL_ADAPTIVE') {
-        this.setArchetype('TACTICAL_ADAPTIVE', this.getHabitCallout(this.profiler.detectedHabit), '#ffc700');
+        this.setArchetype('TACTICAL_ADAPTIVE', this.getHabitCallout(this.profiler.detectedHabit), '#eec05a');
       }
       return;
     }
@@ -304,33 +299,39 @@ export class CombatAI {
   getHabitCallout(habit) {
     switch (habit) {
       case 'HABIT_SLIP_RIGHT':
-        return '🧠 AI READ: SLIP RIGHT HABIT DETECTED → INTERCEPTING WITH HOOK!';
+        return 'TACTICAL READ: LATERAL SLIP OBSERVED — INTERCEPTING WITH HOOK';
       case 'HABIT_SLIP_LEFT':
-        return '🧠 AI READ: SLIP LEFT DETECTED → PUNISHING WITH POWER CROSS!';
+        return 'TACTICAL READ: SLIP LEFT OBSERVED — PUNISHING WITH POWER CROSS';
       case 'HABIT_HIGH_GUARD':
-        return '🧠 AI READ: HIGH GUARD SPOTTED → DIGGING TO RIBS!';
+        return 'TACTICAL READ: HIGH GUARD ADOPTED — TARGETING THE RIBS';
       case 'HABIT_DUCK':
-        return '🧠 AI READ: EARLY DUCKING OBSERVED → RISING UPPERCUT!';
+        return 'TACTICAL READ: EARLY DUCKING OBSERVED — RISING UPPERCUT';
       case 'HABIT_PREMATURE_EVASION':
-        return '🧠 AI TACTIC: EARLY SLIPPER DETECTED → THROWING FEINT!';
+        return 'TACTICAL FEINT: DRAWING PREMATURE EVASION';
       case 'HABIT_AGGRESSIVE_COUNTER':
-        return '🧠 AI TACTIC: BAITING COUNTER PUNCH...';
+        return 'TACTICAL CADENCE: BAITING COUNTER STRIKE';
       default:
-        return '🧠 AI ADAPTING: FORMULATING COUNTER STRATEGY...';
+        return 'PALESTRA DRILL: FORMULATING COUNTER CADENCE';
     }
   }
 
   getDifficultyConfig() {
-    return DIFFICULTY_CONFIGS[this.difficulty] || DIFFICULTY_CONFIGS.PRO;
+    return DIFFICULTY_CONFIGS[this.difficulty] || DIFFICULTY_CONFIGS.PROFESSIONAL;
   }
 
   setDifficulty(diffName) {
-    if (DIFFICULTY_CONFIGS[diffName]) {
-      this.difficulty = diffName;
-      const cfg = DIFFICULTY_CONFIGS[diffName];
-      this.emitThought(`⚡ BOT DIFFICULTY SET: ${cfg.name} ⚡`, cfg.color);
+    let key = diffName;
+    if (diffName === 'ROOKIE') key = 'NOVICE';
+    if (diffName === 'PRO') key = 'PROFESSIONAL';
+
+    if (DIFFICULTY_CONFIGS[key]) {
+      this.difficulty = key;
+      const cfg = DIFFICULTY_CONFIGS[key];
+      this.emitThought(`RIGOR CONFIGURED: ${cfg.label}`, cfg.color);
       if (this.boxer3D && this.boxer3D.setDifficulty) {
-        this.boxer3D.setDifficulty(diffName);
+        // Map to string expected by 3D animator
+        const animDiff = key === 'NOVICE' ? 'ROOKIE' : key === 'CHAMPION' ? 'CHAMPION' : 'PRO';
+        this.boxer3D.setDifficulty(animDiff);
       }
       return cfg;
     }
@@ -338,24 +339,20 @@ export class CombatAI {
   }
 
   cycleDifficulty() {
-    const sequence = ['ROOKIE', 'PRO', 'CHAMPION'];
+    const sequence = ['NOVICE', 'PROFESSIONAL', 'CHAMPION'];
     const currentIdx = sequence.indexOf(this.difficulty);
     const nextIdx = (currentIdx + 1) % sequence.length;
     return this.setDifficulty(sequence[nextIdx]);
   }
 
-  emitThought(text, color = '#00f3ff') {
+  emitThought(text, color = '#d4a03c') {
     this.currentThought = text;
     this.thoughtTimestamp = performance.now();
     this.thoughtColor = color;
   }
 
   /**
-   * Main Decision Engine:
-   * Called when boxer is IDLE and cooldown has expired.
-   * Decides whether to throw a single strike, execute a feint, or unleash an adaptive combo.
-   * @param {number} timestamp 
-   * @returns {Object} { type: 'COMBO' | 'STRIKE' | 'FEINT', comboId, attackId, windupMs, speedMultiplier }
+   * Main Decision Engine
    */
   decideNextAction(timestamp) {
     const config = this.archetypeParams[this.currentArchetype] || this.archetypeParams.PROBING;
@@ -364,12 +361,11 @@ export class CombatAI {
     const speedMult = config.speedMultiplier * diffConfig.speedMultiplier;
     const comboProb = Math.min(0.96, config.comboProbability * diffConfig.comboProbabilityMultiplier);
 
-    // Roll for Combo vs Single Strike vs Feint
     const roll = Math.random();
 
-    // Priority 1: If player slips prematurely on windups, throw FEINT_OVERHAND!
-    if (habit === 'HABIT_PREMATURE_EVASION' || roll < (config.feintProbability * (this.difficulty === 'ROOKIE' ? 0.3 : 1.0))) {
-      this.emitThought('🧠 AI TACTIC: THROWING FEINT TO DRAW PREMATURE SLIP...', '#ffc700');
+    // Priority 1: If player slips prematurely on windups, throw FEINT_OVERHAND
+    if (habit === 'HABIT_PREMATURE_EVASION' || roll < (config.feintProbability * (this.difficulty === 'NOVICE' ? 0.3 : 1.0))) {
+      this.emitThought('TACTICAL FEINT: DRAWING PREMATURE EVASION', '#eec05a');
       return {
         type: 'COMBO',
         combo: COMBO_DEFINITIONS.FEINT_OVERHAND,
@@ -384,20 +380,19 @@ export class CombatAI {
 
       if (habit === 'HABIT_HIGH_GUARD') {
         chosenCombo = COMBO_DEFINITIONS.BODY_HEAD_TRAP;
-        this.emitThought('🧠 AI READ: HIGH GUARD SPOTTED → DIGGING TO RIBS!', '#ff0055');
+        this.emitThought('TACTICAL READ: HIGH GUARD IDENTIFIED — DIGGING TO RIBS', '#9e3d2b');
       } else if (habit === 'HABIT_SLIP_RIGHT') {
         chosenCombo = COMBO_DEFINITIONS.ONE_TWO_THREE;
-        this.emitThought('🧠 AI READ: SLIP RIGHT HABIT DETECTED → HOOK INTERCEPT!', '#00f3ff');
+        this.emitThought('TACTICAL READ: LATERAL SLIP PREDICTED — HOOK INTERCEPT', '#d4a03c');
       } else if (habit === 'HABIT_DUCK' || habit === 'HABIT_AGGRESSIVE_COUNTER') {
         chosenCombo = COMBO_DEFINITIONS.COUNTER_CRUSH;
-        this.emitThought('🧠 AI ADAPTING: COUNTERING YOUR RHYTHM WITH UPPERCUT!', '#00ff88');
+        this.emitThought('TACTICAL CADENCE: COUNTERING RHYTHM WITH UPPERCUT', '#eec05a');
       } else if (this.currentArchetype === 'PRESSURE_COMBOS' || this.currentArchetype === 'DESPERATION_OVERDRIVE') {
         chosenCombo = Math.random() > 0.5 ? COMBO_DEFINITIONS.HEAVY_PRESSURE : COMBO_DEFINITIONS.ONE_TWO_THREE;
-        this.emitThought('🧠 AI TACTIC: RELENTLESS PRESSURE FLURRY ENGAGED!', '#ff2255');
+        this.emitThought('IMPERIAL BARRAGE: UNLEASHING FLURRY CADENCE', '#9e3d2b');
       } else {
-        // Classic 1-2
         chosenCombo = COMBO_DEFINITIONS.ONE_TWO;
-        this.emitThought('🧠 AI TACTIC: SNAP 1-2 BREAD & BUTTER COMBINATION!', '#00f3ff');
+        this.emitThought('CLASSICAL CADENCE: SNAP ONE-TWO COMBINATION', '#d4a03c');
       }
 
       return {
@@ -412,23 +407,22 @@ export class CombatAI {
     let singleAttack = 'LEFT_JAB';
     if (habit === 'HABIT_SLIP_RIGHT') {
       singleAttack = 'LEFT_HOOK';
-      this.emitThought('🧠 AI READ: SLIP RIGHT PREDICTED → LEAD HOOK!', '#00f3ff');
+      this.emitThought('TACTICAL READ: SLIP RIGHT PREDICTED — LEAD HOOK', '#d4a03c');
     } else if (habit === 'HABIT_SLIP_LEFT') {
       singleAttack = 'RIGHT_CROSS';
-      this.emitThought('🧠 AI READ: SLIP LEFT PREDICTED → POWER CROSS!', '#ffc700');
+      this.emitThought('TACTICAL READ: SLIP LEFT PREDICTED — POWER CROSS', '#eec05a');
     } else if (habit === 'HABIT_DUCK') {
       singleAttack = 'UPPERCUT';
-      this.emitThought('🧠 AI READ: DUCK PREDICTED → RISING UPPERCUT!', '#00ff88');
+      this.emitThought('TACTICAL READ: DUCK PREDICTED — RISING UPPERCUT', '#eec05a');
     } else if (habit === 'HABIT_HIGH_GUARD') {
       singleAttack = 'BODY_SHOT';
-      this.emitThought('🧠 AI READ: HIGH GUARD PREDICTED → BODY SHOVEL!', '#ff0055');
+      this.emitThought('TACTICAL READ: HIGH GUARD PREDICTED — BODY SHOVEL', '#9e3d2b');
     } else {
       const pool = ['LEFT_JAB', 'RIGHT_CROSS', 'LEFT_HOOK', 'RIGHT_HOOK', 'OVERHAND'];
       singleAttack = pool[Math.floor(Math.random() * pool.length)];
-      this.emitThought('🧠 AI TACTIC: PROBING DISTANCE WITH ' + singleAttack, '#00f3ff');
+      this.emitThought(`PALESTRA DRILL: PROBING DISTANCE WITH ${singleAttack}`, '#d4a03c');
     }
 
-    // Calculate base windup with round progression & speed scaling
     const baseWindup = Math.max(300, Math.round((560 - (99 - this.gameState.roundTime) * 2.8) / speedMult));
 
     return {
@@ -439,54 +433,48 @@ export class CombatAI {
     };
   }
 
-  /**
-   * Called when player successfully evades a strike or combo
-   */
   onPlayerEvaded(isCombo, isFullCombo) {
     this.consecutivePlayerEvades++;
     this.consecutiveHitsOnPlayer = 0;
 
     if (isFullCombo) {
-      this.emitThought('⚡ AI ALERT: COMBO EVADED! CRITICAL RECOVERY WINDOW OPEN!', '#ff3366');
+      this.emitThought('CADENCE INTERRUPTED: SEQUENCE DEFENDED — RECOVERY WINDOW OPEN', '#9e3d2b');
     }
   }
 
-  /**
-   * Called when opponent lands a hit on player
-   */
   onHitLanded(isCombo, damage) {
     this.consecutiveHitsOnPlayer++;
     this.consecutivePlayerEvades = 0;
 
     if (this.consecutiveHitsOnPlayer >= 2) {
-      this.emitThought('💥 AI ADVANTAGE: PLAYER GUARD COMPROMISED → PRESSING ATTACK!', '#00ff88');
+      this.emitThought('KINEMATIC ADVANTAGE: OPPONENT GUARD COMPROMISED — PRESSING ATTACK', '#d4a03c');
     }
   }
 
   /**
-   * Renders the Cyberpunk / Street Fighter AI Tactical Thought HUD on Canvas
+   * Renders the Classical Pugilism Tactical Thought HUD on Canvas
    */
   renderHUD(ctx, width, height) {
     ctx.save();
 
     const thoughtText = this.currentThought;
-    const color = this.thoughtColor;
+    const color = this.thoughtColor || '#d4a03c';
     const archetypeInfo = this.archetypeParams[this.currentArchetype] || this.archetypeParams.PROBING;
 
     // Top Center HUD positioning (below health bars and round timer)
     const centerX = width * 0.5;
     const topY = 74;
 
-    ctx.font = '800 12px "Russo One", sans-serif';
+    ctx.font = '600 11px "Inter", sans-serif';
     const textWidth = ctx.measureText(thoughtText).width;
-    const bannerW = Math.max(340, textWidth + 48);
+    const bannerW = Math.max(340, textWidth + 56);
     const bannerH = 26;
     const bannerX = centerX - bannerW * 0.5;
 
-    // Subtle background capsule with neon border
-    ctx.fillStyle = 'rgba(8, 12, 20, 0.88)';
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.4;
+    // Dark luxury background capsule with gilded border
+    ctx.fillStyle = 'rgba(17, 16, 13, 0.94)';
+    ctx.strokeStyle = '#d4a03c';
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.roundRect(bannerX, topY, bannerW, bannerH, 13);
     ctx.fill();
@@ -494,32 +482,32 @@ export class CombatAI {
 
     // Archetype Badge Pill on Left Edge with Difficulty indicator
     const badgeText = `${this.difficulty} • ${archetypeInfo.label}`;
-    ctx.font = '800 9px "Plus Jakarta Sans", sans-serif';
+    ctx.font = '700 9px "JetBrains Mono", monospace';
     const badgeW = ctx.measureText(badgeText).width + 12;
-    ctx.fillStyle = color;
+    ctx.fillStyle = '#d4a03c';
     ctx.beginPath();
     ctx.roundRect(bannerX + 4, topY + 4, badgeW, bannerH - 8, 8);
     ctx.fill();
 
-    ctx.fillStyle = '#080c14';
+    ctx.fillStyle = '#0a0907';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(badgeText, bannerX + 4 + badgeW * 0.5, topY + bannerH * 0.5);
 
     // Thought Text
-    ctx.font = '700 11px "Plus Jakarta Sans", sans-serif';
-    ctx.fillStyle = '#f1f5f9';
+    ctx.font = '500 11px "Inter", sans-serif';
+    ctx.fillStyle = '#f0ebe0';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     const textX = bannerX + badgeW + 14;
     ctx.fillText(thoughtText, textX, topY + bannerH * 0.5);
 
-    // Pulse indicator icon on right edge
-    const pulseAlpha = 0.5 + Math.sin(performance.now() * 0.01) * 0.5;
-    ctx.fillStyle = color;
+    // Subtle gold pulse indicator on right edge
+    const pulseAlpha = 0.5 + Math.sin(performance.now() * 0.008) * 0.5;
+    ctx.fillStyle = '#d4a03c';
     ctx.globalAlpha = pulseAlpha;
     ctx.beginPath();
-    ctx.arc(bannerX + bannerW - 12, topY + bannerH * 0.5, 4, 0, Math.PI * 2);
+    ctx.arc(bannerX + bannerW - 12, topY + bannerH * 0.5, 3.5, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();

@@ -1,17 +1,32 @@
 /**
- * Championship Boxing Game State Manager
- * Inspired by Punch-Out!! (Wii) and Arcade Fighting Games:
- * - Dual authentic championship health bars with yellow hit-lag chip damage
- * - Player 1 (Green) vs Rival (Red) with boxer headgear avatar badges
- * - Center Round Indicator ("Round 1") & high-contrast digital countdown timer
- * - 3 Glove Super Star / Stamina tier icons below each health bar
- * - Dynamic combo counter with damage multiplier scaling
- * - Knockout and match victory resolution
+ * Palestra Pugilism Game State Manager
+ * Dark Luxury Classical Aesthetic:
+ * - Dual classical health bars with delayed gilded chip damage
+ * - Athlete vs Rival with gilded laurel crest avatar badges
+ * - Center Round Indicator (Roman Numerals: "ROUND I", "ROUND II") & countdown timer
+ * - 3 Gilded Star / Power tier icons below each health bar
+ * - Dynamic classical strike sequence counter with kinematic force multiplier
+ * - Technical conclusion and round resolution
  */
+
+export function toRoman(num) {
+  const map = [
+    [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']
+  ];
+  let n = Math.max(1, Math.floor(num));
+  let result = '';
+  for (const [v, r] of map) {
+    while (n >= v) {
+      result += r;
+      n -= v;
+    }
+  }
+  return result || 'I';
+}
 
 export class GameState {
   constructor() {
-    // Increased health pools (2500 HP) for realistic, multi-exchange boxing rounds
+    // Health pools (2500 HP) for realistic, multi-exchange boxing rounds
     this.playerMaxHp = 2500;
     this.playerHp = 2500;
     this.playerGhostHp = 2500;
@@ -27,12 +42,12 @@ export class GameState {
     this.superMax = 100;
 
     this.round = 1;
-    this.roundTime = 90; // 90s authentic championship sparring round
+    this.roundTime = 90; // 90s classical sparring round
     this.roundTimer = performance.now();
     this.isMatchOver = false;
     this.winner = null; // 'PLAYER' | 'CPU'
 
-    // Combo system with realistic scaling
+    // Strike Sequence system with kinematic force scaling
     this.comboCount = 0;
     this.comboTimer = 0;
     this.comboMultiplier = 1.0;
@@ -63,7 +78,7 @@ export class GameState {
     this.playerHp = Math.max(0, this.playerHp - amount);
     this.playerChipTimer = performance.now() + 500;
     this.playerFlash = 0.8;
-    this.comboCount = 0; // Drop combo on getting hit
+    this.comboCount = 0; // Drop sequence on getting hit
     this.comboMultiplier = 1.0;
 
     if (this.playerHp <= 0) {
@@ -79,7 +94,7 @@ export class GameState {
     this.rivalChipTimer = performance.now() + 500;
     this.rivalFlash = 0.8;
 
-    // Increment combo with realistic scaling (up to +40% boost for high hit streaks)
+    // Increment strike sequence with realistic scaling (up to +40% boost for high hit streaks)
     this.comboCount++;
     this.comboTimer = performance.now() + 1900; // 1.9s combo window
     this.comboMultiplier = 1.0 + Math.min(0.40, (this.comboCount - 1) * 0.04);
@@ -111,7 +126,7 @@ export class GameState {
     if (this.playerFlash > 0) this.playerFlash = Math.max(0, this.playerFlash - dt * 2.5);
     if (this.rivalFlash > 0) this.rivalFlash = Math.max(0, this.rivalFlash - dt * 2.5);
 
-    // 3. Combo Timer Decay
+    // 3. Sequence Timer Decay
     if (this.comboCount > 0 && now > this.comboTimer) {
       this.comboCount = 0;
       this.comboMultiplier = 1.0;
@@ -129,7 +144,7 @@ export class GameState {
   }
 
   /**
-   * Renders the Championship Top Fight HUD matching Punch-Out!! (Wii) reference
+   * Renders the Classical Top Fight HUD with Dark Luxury Neoclassical Styling
    * @param {CanvasRenderingContext2D} ctx 
    * @param {number} width Screen width
    * @param {number} height Screen height
@@ -137,11 +152,11 @@ export class GameState {
    */
   renderHUD(ctx, width, height, opponentName = 'SHANE FAZEN (SPARRING)') {
     const margin = Math.max(18, Math.min(36, width * 0.03));
-    const topY = 80; // Positioned cleanly below the header bar
+    const topY = 82; // Positioned cleanly below the neoclassical header bar
     const barHeight = 26;
     const avatarSize = 44;
-    const centerBoxW = 108;
-    const centerBoxH = 50;
+    const centerBoxW = 120;
+    const centerBoxH = 54;
 
     const cx = width * 0.5;
 
@@ -153,65 +168,65 @@ export class GameState {
     const timerX = cx - centerBoxW * 0.5;
     const timerY = topY - 14;
 
-    // Dark titanium beveled container
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
-    ctx.shadowBlur = 16;
-    ctx.fillStyle = '#0f1422';
+    // Dark obsidian beveled container with gilded border
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = '#11100d';
     ctx.beginPath();
     ctx.roundRect(timerX, timerY, centerBoxW, centerBoxH, 6);
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    ctx.strokeStyle = '#2a354c';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#d4a03c';
+    ctx.lineWidth = 1.4;
     ctx.stroke();
 
-    // Top Header: "Round 1"
-    ctx.fillStyle = '#1e283c';
+    // Top Header: "ROUND I", "ROUND II", etc.
+    ctx.fillStyle = '#161411';
     ctx.beginPath();
-    ctx.roundRect(timerX + 2, timerY + 2, centerBoxW - 4, 18, [4, 4, 0, 0]);
+    ctx.roundRect(timerX + 2, timerY + 2, centerBoxW - 4, 20, [4, 4, 0, 0]);
     ctx.fill();
 
-    ctx.font = '800 11px "Plus Jakarta Sans", sans-serif';
-    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '700 11px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#d4a03c';
     ctx.textAlign = 'center';
-    ctx.fillText(`Round ${this.round}`, cx, timerY + 15);
+    ctx.fillText(`ROUND ${toRoman(this.round)}`, cx, timerY + 16);
 
-    // Bottom White Display: Big Bold Countdown Number
-    ctx.fillStyle = '#f8fafc';
+    // Bottom Display: Countdown Number
+    ctx.fillStyle = '#0a0907';
     ctx.beginPath();
-    ctx.roundRect(timerX + 4, timerY + 21, centerBoxW - 8, 25, [0, 0, 4, 4]);
+    ctx.roundRect(timerX + 4, timerY + 23, centerBoxW - 8, 27, [0, 0, 4, 4]);
     ctx.fill();
 
-    ctx.font = '900 24px "Russo One", "Impact", sans-serif';
-    ctx.fillStyle = this.roundTime <= 10 ? '#dc2626' : '#0f172a';
-    ctx.fillText(`${this.roundTime}`, cx, timerY + 42);
+    ctx.font = '800 24px "Inter", sans-serif';
+    ctx.fillStyle = this.roundTime <= 10 ? '#ef4444' : '#f0ebe0';
+    ctx.fillText(`${this.roundTime}`, cx, timerY + 44);
 
     // ==========================================
-    // 2. PLAYER 1 HEALTH BAR (LEFT SIDE)
+    // 2. ATHLETE / PLAYER 1 HEALTH BAR (LEFT SIDE)
     // ==========================================
     const pAvatarX = margin;
     const pAvatarY = topY - 8;
-    const pBarStartX = pAvatarX + avatarSize + 8;
-    const pBarEndX = timerX - 8;
+    const pBarStartX = pAvatarX + avatarSize + 10;
+    const pBarEndX = timerX - 10;
     const pBarW = Math.max(80, pBarEndX - pBarStartX);
 
-    // Player 1 Avatar Badge (Red Boxer Helmet)
+    // Athlete Avatar Badge
     this.drawAvatarBadge(ctx, pAvatarX, pAvatarY, avatarSize, true);
 
-    // Player Fighter Label
-    ctx.font = '800 12px "Russo One", sans-serif';
-    ctx.fillStyle = '#ffffff';
+    // Athlete Fighter Label
+    ctx.font = '700 11px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#f0ebe0';
     ctx.textAlign = 'left';
-    ctx.shadowColor = '#000000';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
     ctx.shadowBlur = 4;
-    ctx.fillText('PLAYER 1', pBarStartX, topY - 12);
+    ctx.fillText('ATHLETE', pBarStartX, topY - 12);
     ctx.shadowBlur = 0;
 
-    // Player Health Bar (Drains left-to-right, vibrant green like Kinect Sports Boxing)
+    // Athlete Health Bar (Drains left-to-right, warm gold/emerald gradient)
     const pColors = (this.playerHp / this.playerMaxHp) > 0.30
-      ? ['#00e676', '#10b981']
-      : ['#ef4444', '#dc2626'];
+      ? ['#2d6a4f', '#52b788']
+      : ['#9e3d2b', '#7a1f1d'];
 
     this.drawHealthBar(
       ctx,
@@ -226,37 +241,35 @@ export class GameState {
       false
     );
 
-    // Player 3 Glove Icons (Super Star / Power Tier Meters)
+    // Athlete 3 Gilded Star Indicators (Power Tier Meters)
     const playerStars = Math.floor((this.superGauge / this.superMax) * 3);
-    this.drawGloveIndicators(ctx, pBarStartX, topY + barHeight + 4, pBarW, playerStars, '#ffd700', false);
+    this.drawGloveIndicators(ctx, pBarStartX, topY + barHeight + 4, pBarW, playerStars, '#d4a03c', false);
 
     // ==========================================
     // 3. RIVAL HEALTH BAR (RIGHT SIDE)
     // ==========================================
     const rAvatarX = width - margin - avatarSize;
     const rAvatarY = topY - 8;
-    const rBarStartX = timerX + centerBoxW + 8;
-    const rBarEndX = rAvatarX - 8;
+    const rBarStartX = timerX + centerBoxW + 10;
+    const rBarEndX = rAvatarX - 10;
     const rBarW = Math.max(80, rBarEndX - rBarStartX);
 
-    // Rival Avatar Badge (Blue Boxer Helmet)
+    // Rival Avatar Badge
     this.drawAvatarBadge(ctx, rAvatarX, rAvatarY, avatarSize, false);
 
     // Rival Fighter Label
-    ctx.font = '800 12px "Russo One", sans-serif';
-    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 11px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#f0ebe0';
     ctx.textAlign = 'right';
-    ctx.shadowColor = '#000000';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
     ctx.shadowBlur = 4;
     ctx.fillText(opponentName, rBarEndX, topY - 12);
     ctx.shadowBlur = 0;
 
-    // Rival Health Bar (Drains towards center, green when healthy like Kinect Sports, turns red as HP drops)
-    const rColors = (this.rivalHp / this.rivalMaxHp) > 0.40
-      ? ['#00e676', '#10b981']
-      : (this.rivalHp / this.rivalMaxHp) > 0.20
-        ? ['#f59e0b', '#fbbf24']
-        : ['#ff1744', '#ef4444'];
+    // Rival Health Bar (Drains towards center, Imperial Crimson gradient)
+    const rColors = (this.rivalHp / this.rivalMaxHp) > 0.35
+      ? ['#8c2424', '#b83232']
+      : ['#7a1f1d', '#551211'];
 
     this.drawHealthBar(
       ctx,
@@ -271,12 +284,12 @@ export class GameState {
       true
     );
 
-    // Rival 3 Glove Icons (Combo/Stamina Fury)
+    // Rival 3 Indicator Stars
     const rivalGloveFill = Math.min(3, Math.ceil((this.rivalHp / this.rivalMaxHp) * 3));
-    this.drawGloveIndicators(ctx, rBarStartX, topY + barHeight + 4, rBarW, rivalGloveFill, '#ff3366', true);
+    this.drawGloveIndicators(ctx, rBarStartX, topY + barHeight + 4, rBarW, rivalGloveFill, '#8c2424', true);
 
     // ==========================================
-    // 4. COMBO STREAK DISPLAY
+    // 4. STRIKE SEQUENCE DISPLAY
     // ==========================================
     if (this.comboCount >= 2) {
       this.drawComboStreak(ctx, width, height);
@@ -286,70 +299,66 @@ export class GameState {
   }
 
   /**
-   * Draws a Punch-Out!! style boxer avatar portrait badge
+   * Draws a Classical Laurel Crest avatar badge with dark luxury framing
    */
   drawAvatarBadge(ctx, x, y, size, isPlayer) {
     ctx.save();
 
-    // Outer Beveled Frame
-    ctx.fillStyle = isPlayer ? '#7f1d1d' : '#1e3a8a';
-    ctx.strokeStyle = isPlayer ? '#ef4444' : '#3b82f6';
-    ctx.lineWidth = 2.5;
+    // Outer Gilded Frame
+    ctx.fillStyle = '#161411';
+    ctx.strokeStyle = isPlayer ? '#d4a03c' : '#8c2424';
+    ctx.lineWidth = 1.8;
 
     ctx.beginPath();
     ctx.roundRect(x, y, size, size, 8);
     ctx.fill();
     ctx.stroke();
 
-    // Stylized Boxer Headgear Helmet Icon
     const cx = x + size * 0.5;
-    const cy = y + size * 0.52;
-    const r = size * 0.32;
+    const cy = y + size * 0.5;
 
-    // Head / Face
-    ctx.fillStyle = '#fbcfe8';
-    ctx.beginPath();
-    ctx.arc(cx, cy, r * 0.85, 0, Math.PI * 2);
-    ctx.fill();
+    // Classical Monogram Emblem: Athlete vs Opponent
+    if (isPlayer) {
+      // Gilded wreath & crest
+      ctx.strokeStyle = '#eec05a';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(cx, cy, size * 0.30, 0.2, Math.PI - 0.2);
+      ctx.stroke();
 
-    // Helmet Dome
-    ctx.fillStyle = isPlayer ? '#dc2626' : '#2563eb';
-    ctx.beginPath();
-    ctx.arc(cx, cy - 2, r, Math.PI * 0.85, Math.PI * 2.15);
-    ctx.lineTo(cx + r * 0.9, cy + 6);
-    ctx.lineTo(cx + r * 0.45, cy + 8);
-    ctx.lineTo(cx - r * 0.45, cy + 8);
-    ctx.lineTo(cx - r * 0.9, cy + 6);
-    ctx.closePath();
-    ctx.fill();
+      ctx.fillStyle = '#d4a03c';
+      ctx.font = '700 11px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('ATH', cx, cy);
+    } else {
+      // Imperial crest / shield
+      ctx.strokeStyle = '#8c2424';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(cx, cy, size * 0.30, 0.2, Math.PI - 0.2);
+      ctx.stroke();
 
-    // Chin strap
-    ctx.strokeStyle = isPlayer ? '#991b1b' : '#1d4ed8';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(cx, cy + 4, r * 0.7, 0.2, Math.PI - 0.2);
-    ctx.stroke();
-
-    // Eyes
-    ctx.fillStyle = '#0f172a';
-    ctx.beginPath();
-    ctx.arc(cx - 4, cy, 1.8, 0, Math.PI * 2);
-    ctx.arc(cx + 4, cy, 1.8, 0, Math.PI * 2);
-    ctx.fill();
+      ctx.fillStyle = '#eec05a';
+      ctx.font = '700 11px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('OPP', cx, cy);
+    }
 
     ctx.restore();
   }
 
   /**
-   * Draws an individual championship health bar with ghost chip lag
+   * Draws an individual classical health bar with gilded chip lag
    */
   drawHealthBar(ctx, x, y, width, height, primaryRatio, ghostRatio, colors, flashAmount, flip) {
     ctx.save();
 
     // Dark chassis background
-    ctx.fillStyle = '#0a0e18';
-    ctx.strokeStyle = '#273349';
-    ctx.lineWidth = 2;
+    ctx.fillStyle = '#0a0907';
+    ctx.strokeStyle = 'rgba(212, 160, 60, 0.45)';
+    ctx.lineWidth = 1.4;
     ctx.beginPath();
     ctx.roundRect(x, y, width, height, 5);
     ctx.fill();
@@ -361,12 +370,12 @@ export class GameState {
     ctx.roundRect(x + 1.5, y + 1.5, width - 3, height - 3, 4);
     ctx.clip();
 
-    // Depleted red damage trail underlay (Kinect Sports style)
-    ctx.fillStyle = '#450a0a';
+    // Deep imperial wine underlay
+    ctx.fillStyle = '#200808';
     ctx.fillRect(x + 1.5, y + 1.5, width - 3, height - 3);
 
-    // 1. Ghost Bar (Delayed Yellow/Orange Chip Damage)
-    ctx.fillStyle = '#f59e0b';
+    // 1. Ghost Bar (Delayed Gilded Amber Chip Damage)
+    ctx.fillStyle = '#d4a03c';
     if (!flip) {
       ctx.fillRect(x + 1.5, y + 1.5, (width - 3) * Math.min(1.0, ghostRatio), height - 3);
     } else {
@@ -374,7 +383,7 @@ export class GameState {
       ctx.fillRect(x + width - 1.5 - gW, y + 1.5, gW, height - 3);
     }
 
-    // 2. Primary Health Bar (Vibrant Gradient)
+    // 2. Primary Health Bar (Gilded Gradient)
     const grad = ctx.createLinearGradient(x, y, x + width, y);
     grad.addColorStop(0, colors[0]);
     grad.addColorStop(1, colors[1]);
@@ -387,20 +396,20 @@ export class GameState {
       ctx.fillRect(x + width - 1.5 - pW, y + 1.5, pW, height - 3);
     }
 
-    // 3. Top Half Glossy Glass Highlight (Authentic Arcade Feel)
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+    // 3. Top Half Glossy Glass Sheen
+    ctx.fillStyle = 'rgba(255, 248, 230, 0.16)';
     ctx.fillRect(x + 1.5, y + 1.5, width - 3, (height - 3) * 0.42);
 
-    // 4. White Hit Flash on Damage
+    // 4. Hit Flash on Damage
     if (flashAmount > 0) {
-      ctx.fillStyle = `rgba(255, 255, 255, ${flashAmount * 0.75})`;
+      ctx.fillStyle = `rgba(255, 248, 230, ${flashAmount * 0.70})`;
       ctx.fillRect(x + 1.5, y + 1.5, width - 3, height - 3);
     }
 
     ctx.restore(); // Exit clip
 
-    // Metallic outer bevel stroke
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    // Metallic fine outer bevel stroke
+    ctx.strokeStyle = 'rgba(255, 248, 230, 0.25)';
     ctx.lineWidth = 1;
     ctx.stroke();
 
@@ -408,13 +417,13 @@ export class GameState {
   }
 
   /**
-   * Draws 3 horizontal glove indicators below the health bar (Punch-Out!! Wii style)
+   * Draws 3 horizontal star indicators below the health bar
    */
   drawGloveIndicators(ctx, x, y, width, activeCount, activeColor, flip) {
     ctx.save();
 
-    const gloveW = 16;
-    const gloveH = 12;
+    const starW = 16;
+    const starH = 12;
     const spacing = 22;
 
     for (let i = 0; i < 3; i++) {
@@ -422,22 +431,21 @@ export class GameState {
       const isActive = i < activeCount;
 
       // Dark chassis
-      ctx.fillStyle = isActive ? activeColor : 'rgba(30, 41, 59, 0.65)';
-      ctx.strokeStyle = isActive ? '#ffffff' : 'rgba(71, 85, 105, 0.6)';
-      ctx.lineWidth = 1.2;
+      ctx.fillStyle = isActive ? 'rgba(212, 160, 60, 0.18)' : 'rgba(255, 248, 230, 0.03)';
+      ctx.strokeStyle = isActive ? activeColor : 'rgba(255, 248, 230, 0.14)';
+      ctx.lineWidth = 1;
 
-      // Miniature Glove Contour
       ctx.beginPath();
-      ctx.roundRect(gx, y, gloveW, gloveH, 3);
+      ctx.roundRect(gx, y, starW, starH, 3);
       ctx.fill();
       ctx.stroke();
 
-      // Glove Star Icon inside
+      // Illuminated geometric pip inside
       if (isActive) {
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '900 8px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('★', gx + gloveW * 0.5, y + 9);
+        ctx.fillStyle = activeColor;
+        ctx.beginPath();
+        ctx.roundRect(gx + 2.5, y + 2.5, starW - 5, starH - 5, 1.5);
+        ctx.fill();
       }
     }
 
@@ -446,26 +454,26 @@ export class GameState {
 
   drawComboStreak(ctx, width, height) {
     ctx.save();
-    const x = 50;
+    const x = 54;
     const y = height * 0.38;
 
-    ctx.font = '900 46px "Russo One", "Impact", sans-serif';
+    ctx.font = '800 32px "Inter", sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#ffe600';
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 6;
-    ctx.shadowColor = '#ff5500';
-    ctx.shadowBlur = 18;
+    ctx.fillStyle = '#eec05a';
+    ctx.strokeStyle = '#0a0907';
+    ctx.lineWidth = 4;
+    ctx.shadowColor = 'rgba(212, 160, 60, 0.4)';
+    ctx.shadowBlur = 14;
 
-    const text = `${this.comboCount} HITS!`;
+    const text = `${toRoman(this.comboCount)} STRIKE SEQUENCE`;
     ctx.strokeText(text, x, y);
     ctx.fillText(text, x, y);
 
-    ctx.font = '900 20px "Russo One", sans-serif';
-    ctx.fillStyle = '#00ffff';
-    const multText = `x${this.comboMultiplier.toFixed(1)} DAMAGE BOOST`;
-    ctx.strokeText(multText, x, y + 28);
-    ctx.fillText(multText, x, y + 28);
+    ctx.font = '700 12px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#f0ebe0';
+    const multText = `+${Math.round((this.comboMultiplier - 1.0) * 100)}% KINEMATIC FORCE`;
+    ctx.strokeText(multText, x, y + 24);
+    ctx.fillText(multText, x, y + 24);
 
     ctx.restore();
   }

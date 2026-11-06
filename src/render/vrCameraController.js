@@ -218,12 +218,12 @@ export class VRCameraController {
     const vpX = cx - (this.camX * width * 0.22);
     const vpY = cy * 0.85 + (this.camY * height * 0.18);
 
-    // 1. Distant Dark Arena Atmosphere & Cyber Vignette
+    // 1. Distant Dark Arena Atmosphere & Vignette
     if (!overlayMode) {
       const bgGrad = ctx.createRadialGradient(vpX, vpY, 80, cx, cy, width * 0.85);
-      bgGrad.addColorStop(0, 'rgba(0, 243, 255, 0.08)');
-      bgGrad.addColorStop(0.4, 'rgba(10, 16, 28, 0.95)');
-      bgGrad.addColorStop(1, '#06080d');
+      bgGrad.addColorStop(0, 'rgba(212, 160, 60, 0.05)');
+      bgGrad.addColorStop(0.4, 'rgba(17, 16, 13, 0.95)');
+      bgGrad.addColorStop(1, '#0a0907');
 
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, width, height);
@@ -235,7 +235,7 @@ export class VRCameraController {
     // 3. 3D Perspective Floor Canvas Grid (The Boxing Ring Floor)
     this.drawRingFloor(ctx, width, height, vpX, vpY, overlayMode);
 
-    // 4. Glowing Neon Boxing Ring Ropes (Parallax 3D Ropes)
+    // 4. Classical Boxing Ring Ropes (Parallax 3D Ropes)
     this.drawRingRopes(ctx, width, height, vpX, vpY);
 
     ctx.restore();
@@ -245,10 +245,10 @@ export class VRCameraController {
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
 
-    // Left Spotlight Beam
+    // Left Spotlight Beam (Warm Gold)
     const leftGrad = ctx.createRadialGradient(width * 0.15, -40, 10, vpX, vpY + 100, width * 0.6);
-    leftGrad.addColorStop(0, 'rgba(0, 243, 255, 0.15)');
-    leftGrad.addColorStop(1, 'rgba(0, 243, 255, 0)');
+    leftGrad.addColorStop(0, 'rgba(212, 160, 60, 0.12)');
+    leftGrad.addColorStop(1, 'rgba(212, 160, 60, 0)');
     ctx.fillStyle = leftGrad;
     ctx.beginPath();
     ctx.moveTo(width * 0.15 - 50, -40);
@@ -258,10 +258,10 @@ export class VRCameraController {
     ctx.closePath();
     ctx.fill();
 
-    // Right Spotlight Beam
+    // Right Spotlight Beam (Imperial Wine)
     const rightGrad = ctx.createRadialGradient(width * 0.85, -40, 10, vpX, vpY + 100, width * 0.6);
-    rightGrad.addColorStop(0, 'rgba(255, 0, 119, 0.12)');
-    rightGrad.addColorStop(1, 'rgba(255, 0, 119, 0)');
+    rightGrad.addColorStop(0, 'rgba(140, 36, 36, 0.10)');
+    rightGrad.addColorStop(1, 'rgba(140, 36, 36, 0)');
     ctx.fillStyle = rightGrad;
     ctx.beginPath();
     ctx.moveTo(width * 0.85 - 50, -40);
@@ -283,18 +283,18 @@ export class VRCameraController {
     // Floor base - transparent in overlay mode so user webcam is clearly visible
     const floorGrad = ctx.createLinearGradient(0, horizonY, 0, floorBottomY);
     if (overlayMode) {
-      floorGrad.addColorStop(0, 'rgba(12, 17, 26, 0.20)');
-      floorGrad.addColorStop(1, 'rgba(8, 12, 20, 0.55)');
+      floorGrad.addColorStop(0, 'rgba(17, 16, 13, 0.20)');
+      floorGrad.addColorStop(1, 'rgba(10, 9, 7, 0.55)');
     } else {
-      floorGrad.addColorStop(0, 'rgba(12, 17, 26, 0.95)');
-      floorGrad.addColorStop(1, 'rgba(8, 12, 20, 0.98)');
+      floorGrad.addColorStop(0, 'rgba(17, 16, 13, 0.95)');
+      floorGrad.addColorStop(1, 'rgba(10, 9, 7, 0.98)');
     }
     ctx.fillStyle = floorGrad;
     ctx.fillRect(0, horizonY, width, floorBottomY - horizonY);
 
     // Perspective Grid Lines radiating from Vanishing Point
-    ctx.strokeStyle = 'rgba(0, 243, 255, 0.15)';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(212, 160, 60, 0.12)';
+    ctx.lineWidth = 1.2;
 
     const numRadials = 16;
     for (let i = 0; i <= numRadials; i++) {
@@ -305,27 +305,27 @@ export class VRCameraController {
       ctx.stroke();
     }
 
-    // Horizontal Depth Grid Rungs (Logarithmic spacing for authentic 3D depth)
+    // Horizontal Depth Grid Rungs
     const numRungs = 12;
     for (let i = 1; i <= numRungs; i++) {
-      const t = Math.pow(i / numRungs, 2.2); // Exponential spacing
+      const t = Math.pow(i / numRungs, 2.2);
       const rungY = horizonY + (floorBottomY - horizonY) * t;
 
-      const alpha = 0.04 + t * 0.22;
-      ctx.strokeStyle = `rgba(0, 243, 255, ${alpha.toFixed(2)})`;
+      const alpha = 0.03 + t * 0.16;
+      ctx.strokeStyle = `rgba(212, 160, 60, ${alpha.toFixed(2)})`;
       ctx.beginPath();
       ctx.moveTo(0, rungY);
       ctx.lineTo(width, rungY);
       ctx.stroke();
     }
 
-    // Central Boxing Octagon / Ring Decal
+    // Central Decal
     const ringCenterY = (horizonY + floorBottomY) * 0.52;
     const rx = width * 0.28 * this.camZ;
     const ry = (floorBottomY - horizonY) * 0.26 * this.camZ;
 
-    ctx.strokeStyle = 'rgba(0, 243, 255, 0.25)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(212, 160, 60, 0.20)';
+    ctx.lineWidth = 1.6;
     ctx.beginPath();
     ctx.ellipse(vpX, ringCenterY, rx, ry, 0, 0, Math.PI * 2);
     ctx.stroke();
@@ -345,21 +345,20 @@ export class VRCameraController {
     const ropeY2 = height * 0.46 + shiftY;
     const ropeY3 = height * 0.54 + shiftY;
 
-    // Glowing Neon Cyan and Crimson Ring Ropes
+    // Classical Bronze, Gilded Amber, and Imperial Crimson Ring Ropes
     const ropes = [
-      { y: ropeY1, color: 'rgba(0, 243, 255, 0.55)', blur: 8 },
-      { y: ropeY2, color: 'rgba(255, 199, 0, 0.5)', blur: 6 },
-      { y: ropeY3, color: 'rgba(255, 51, 102, 0.55)', blur: 8 }
+      { y: ropeY1, color: 'rgba(212, 160, 60, 0.65)', blur: 8 },
+      { y: ropeY2, color: 'rgba(238, 192, 90, 0.55)', blur: 6 },
+      { y: ropeY3, color: 'rgba(140, 36, 36, 0.65)', blur: 8 }
     ];
 
     for (const r of ropes) {
       ctx.strokeStyle = r.color;
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 2.4;
       ctx.shadowColor = r.color;
       ctx.shadowBlur = r.blur;
 
       ctx.beginPath();
-      // Slight catenary curve dip in center
       ctx.moveTo(-50, r.y);
       ctx.quadraticCurveTo(width * 0.5 + shiftX, r.y + 12, width + 50, r.y);
       ctx.stroke();
@@ -369,9 +368,9 @@ export class VRCameraController {
     const leftPostX = width * 0.08 + shiftX * 0.7;
     const rightPostX = width * 0.92 + shiftX * 0.7;
 
-    ctx.strokeStyle = 'rgba(0, 243, 255, 0.4)';
-    ctx.lineWidth = 5;
-    ctx.shadowBlur = 10;
+    ctx.strokeStyle = 'rgba(212, 160, 60, 0.35)';
+    ctx.lineWidth = 4;
+    ctx.shadowBlur = 8;
 
     // Left Post
     ctx.beginPath();
@@ -389,38 +388,38 @@ export class VRCameraController {
   }
 
   /**
-   * Renders the Diegetic High-Tech VR Head Telemetry HUD Widget
+   * Renders the Classical Head Telemetry & Stance Alignment HUD Widget
    */
   renderVRHUD(ctx, width, height) {
     if (!this.enabled) return;
 
     ctx.save();
 
-    // Top Right VR Tracking Pill / Gimbal
+    // Top Right Reticle Pill / Gimbal
     const boxW = 190;
     const boxH = 46;
     const x = width - boxW - 28;
     const y = 80;
 
-    // Glass backdrop
-    ctx.fillStyle = 'rgba(14, 18, 28, 0.75)';
-    ctx.strokeStyle = 'rgba(0, 243, 255, 0.35)';
-    ctx.lineWidth = 1;
-    ctx.shadowColor = 'rgba(0, 243, 255, 0.2)';
+    // Dark luxury backdrop
+    ctx.fillStyle = 'rgba(17, 16, 13, 0.92)';
+    ctx.strokeStyle = 'rgba(212, 160, 60, 0.45)';
+    ctx.lineWidth = 1.2;
+    ctx.shadowColor = 'rgba(212, 160, 60, 0.15)';
     ctx.shadowBlur = 12;
 
     ctx.beginPath();
-    ctx.roundRect(x, y, boxW, boxH, 10);
+    ctx.roundRect(x, y, boxW, boxH, 8);
     ctx.fill();
     ctx.stroke();
 
-    // Mini 3D Head Gimbal Reticle
+    // Head Gimbal Reticle
     const gx = x + 24;
     const gy = y + 23;
 
     // Gimbal outer ring
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255, 248, 230, 0.20)';
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.arc(gx, gy, 14, 0, Math.PI * 2);
     ctx.stroke();
@@ -429,15 +428,15 @@ export class VRCameraController {
     const dotX = gx + this.camX * 9;
     const dotY = gy + this.camY * 9;
 
-    ctx.fillStyle = '#00ff88';
-    ctx.shadowColor = '#00ff88';
+    ctx.fillStyle = '#d4a03c';
+    ctx.shadowColor = 'rgba(212, 160, 60, 0.6)';
     ctx.shadowBlur = 8;
     ctx.beginPath();
-    ctx.arc(dotX, dotY, 4, 0, Math.PI * 2);
+    ctx.arc(dotX, dotY, 3.6, 0, Math.PI * 2);
     ctx.fill();
 
     // Crosshair lines
-    ctx.strokeStyle = 'rgba(0, 243, 255, 0.4)';
+    ctx.strokeStyle = 'rgba(212, 160, 60, 0.35)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(gx - 16, gy);
@@ -447,17 +446,17 @@ export class VRCameraController {
     ctx.stroke();
 
     // Telemetry text
-    ctx.font = '900 10px "Russo One", sans-serif';
-    ctx.fillStyle = '#00f3ff';
+    ctx.font = '700 9.5px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#f0ebe0';
     ctx.textAlign = 'left';
     ctx.shadowBlur = 0;
-    ctx.fillText('🥽 VR HEAD TRACKING', x + 48, y + 18);
+    ctx.fillText('STANCE ALIGNMENT', x + 48, y + 18);
 
-    ctx.font = '700 9px "Plus Jakarta Sans", sans-serif';
-    ctx.fillStyle = '#94a3b8';
+    ctx.font = '500 8.5px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#968c7e';
     const zoomText = `${Math.round(this.camZ * 100)}%`;
     const tiltDeg = Math.round(this.roll * (180 / Math.PI));
-    ctx.fillText(`FOV: ${zoomText}  |  TILT: ${tiltDeg}°`, x + 48, y + 33);
+    ctx.fillText(`DEPTH: ${zoomText} • TILT: ${tiltDeg}°`, x + 48, y + 33);
 
     ctx.restore();
   }

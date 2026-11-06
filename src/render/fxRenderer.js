@@ -124,7 +124,7 @@ export class FXRenderer {
       ctx.translate(t.x, t.y);
       ctx.scale(t.scale, t.scale);
 
-      ctx.font = `900 ${t.fontSize}px "Russo One", "Impact", sans-serif`;
+      ctx.font = `800 ${t.fontSize}px "Inter", sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillStyle = t.color;
       ctx.strokeStyle = '#000000';
