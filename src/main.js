@@ -128,7 +128,31 @@ class ShadowBoxingApp {
       });
     });
 
-    // 8. Menu Overlay: Action Buttons (Enter Arena & Resume Session)
+    // 8. Menu Overlay: Round Count Selector
+    const roundBtns = document.querySelectorAll('#rounds-selector .segment-btn');
+    roundBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        roundBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const rounds = parseInt(btn.dataset.rounds, 10);
+        this.gameState.maxRounds = rounds;
+        this.updateHeaderDisciplineTitle();
+      });
+    });
+
+    // 9. Menu Overlay: Round Duration Selector
+    const durationBtns = document.querySelectorAll('#duration-selector .segment-btn');
+    durationBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        durationBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const duration = parseInt(btn.dataset.duration, 10);
+        this.gameState.roundDuration = duration;
+        this.gameState.roundTime = duration;
+      });
+    });
+
+    // 10. Menu Overlay: Action Buttons (Enter Arena & Resume Session)
     const enterArenaBtn = document.getElementById('btn-enter-arena');
     if (enterArenaBtn) {
       enterArenaBtn.addEventListener('click', () => this.enterArena());
@@ -278,12 +302,23 @@ class ShadowBoxingApp {
     const modal = document.getElementById('match-over-modal');
     if (modal) modal.style.display = 'none';
 
+    // If match was fully concluded by knockout or reaching final round
+    const isKO = this.gameState.playerHp <= 0 || this.gameState.rivalHp <= 0;
+    const isFinalRound = this.gameState.maxRounds > 0 && this.gameState.round >= this.gameState.maxRounds;
+
+    if (isKO || isFinalRound) {
+      this.gameState.round = 1;
+      this.retryMatch();
+      this.updateHeaderDisciplineTitle();
+      return;
+    }
+
     this.gameState.round += 1;
     this.gameState.playerHp = this.gameState.playerMaxHp;
     this.gameState.playerGhostHp = this.gameState.playerMaxHp;
     this.gameState.rivalHp = this.gameState.rivalMaxHp;
     this.gameState.rivalGhostHp = this.gameState.rivalMaxHp;
-    this.gameState.roundTime = 90;
+    this.gameState.roundTime = this.gameState.roundDuration;
     this.gameState.roundTimer = performance.now();
     this.gameState.isMatchOver = false;
     this.gameState.winner = null;
@@ -313,7 +348,10 @@ class ShadowBoxingApp {
     const titleEl = document.getElementById('header-discipline-title');
     if (!titleEl) return;
     if (this.currentMode === 'REFLEX') {
-      titleEl.textContent = `REFLEX SPARRING — ROUND ${toRoman(this.gameState.round)}`;
+      const roundStr = this.gameState.maxRounds > 0
+        ? `ROUND ${toRoman(this.gameState.round)} OF ${toRoman(this.gameState.maxRounds)}`
+        : `ROUND ${toRoman(this.gameState.round)}`;
+      titleEl.textContent = `REFLEX SPARRING — ${roundStr}`;
     } else {
       titleEl.textContent = 'FORM COACH — KINEMATIC MASTERY';
     }
@@ -799,17 +837,42 @@ class ShadowBoxingApp {
       if (modal && modal.style.display !== 'flex') {
         modal.style.display = 'flex';
 
+        const isKO = this.gameState.playerHp <= 0 || this.gameState.rivalHp <= 0;
+        const isFinalRound = this.gameState.maxRounds > 0 && this.gameState.round >= this.gameState.maxRounds;
+        const isMatchFullyOver = isKO || isFinalRound;
+
+        const nextBtn = document.getElementById('btn-next-round');
+        if (nextBtn) {
+          nextBtn.textContent = isMatchFullyOver ? 'START NEW MATCH' : 'BEGIN NEXT ROUND';
+        }
+
         const romanRound = toRoman(this.gameState.round);
-        if (badge) badge.textContent = `ROUND ${romanRound} COMPLETE`;
+        const roundStr = this.gameState.maxRounds > 0
+          ? `ROUND ${romanRound} OF ${toRoman(this.gameState.maxRounds)}`
+          : `ROUND ${romanRound}`;
+
+        if (badge) {
+          badge.textContent = isMatchFullyOver
+            ? (isKO ? `${roundStr} — KNOCKOUT` : `MATCH CONCLUDED (${roundStr})`)
+            : `${roundStr} COMPLETE`;
+        }
 
         if (this.gameState.winner === 'PLAYER') {
-          if (title) title.textContent = 'Victory';
-          if (sub) sub.textContent = 'Kinematic mastery established through superior evasion and counter-striking cadence.';
+          if (title) title.textContent = isMatchFullyOver ? (isKO ? 'Knockout Victory' : 'Match Victory') : 'Round Victory';
+          if (sub) {
+            sub.textContent = isMatchFullyOver
+              ? 'Kinematic mastery established. The session concludes with total tactical supremacy.'
+              : 'Superior evasion and counter-striking cadence. Prepare for the next round.';
+          }
           this.audio.playVictoryTune();
-          this.boxer3D.knockout();
+          if (isKO) this.boxer3D.knockout();
         } else {
-          if (title) title.textContent = 'Technical Conclusion';
-          if (sub) sub.textContent = 'The exchange concluded. Recalibrate defense and stance alignment for the next round.';
+          if (title) title.textContent = isMatchFullyOver ? (isKO ? 'Knockout Defeat' : 'Technical Conclusion') : 'Round Concluded';
+          if (sub) {
+            sub.textContent = isMatchFullyOver
+              ? 'The match concluded. Recalibrate defense and stance alignment for the next session.'
+              : 'The round concluded. Recalibrate defense and stance alignment for the next round.';
+          }
         }
 
         // Top-line stats

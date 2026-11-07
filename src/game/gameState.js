@@ -42,7 +42,9 @@ export class GameState {
     this.superMax = 100;
 
     this.round = 1;
-    this.roundTime = 90; // 90s classical sparring round
+    this.maxRounds = 3; // 1, 3, 5, 12, or 0 (Endless)
+    this.roundDuration = 90; // 60, 90, 120, 180, or 0 (No Timer / Till Knockout)
+    this.roundTime = 90;
     this.roundTimer = performance.now();
     this.isMatchOver = false;
     this.winner = null; // 'PLAYER' | 'CPU'
@@ -64,7 +66,7 @@ export class GameState {
     this.rivalHp = this.rivalMaxHp;
     this.rivalGhostHp = this.rivalMaxHp;
     this.superGauge = 0;
-    this.roundTime = 90;
+    this.roundTime = this.roundDuration;
     this.roundTimer = performance.now();
     this.isMatchOver = false;
     this.winner = null;
@@ -132,8 +134,8 @@ export class GameState {
       this.comboMultiplier = 1.0;
     }
 
-    // 4. Round Countdown
-    if (!this.isMatchOver && now - this.roundTimer >= 1000) {
+    // 4. Round Countdown (Only active if roundDuration > 0; if 0, continues till knockout)
+    if (!this.isMatchOver && this.roundDuration > 0 && now - this.roundTimer >= 1000) {
       this.roundTime = Math.max(0, this.roundTime - 1);
       this.roundTimer = now;
       if (this.roundTime <= 0) {
@@ -181,7 +183,7 @@ export class GameState {
     ctx.lineWidth = 1.4;
     ctx.stroke();
 
-    // Top Header: "ROUND I", "ROUND II", etc.
+    // Top Header: "ROUND I", "ROUND I / III", etc.
     ctx.fillStyle = '#161411';
     ctx.beginPath();
     ctx.roundRect(timerX + 2, timerY + 2, centerBoxW - 4, 20, [4, 4, 0, 0]);
@@ -190,17 +192,26 @@ export class GameState {
     ctx.font = '700 11px "JetBrains Mono", monospace';
     ctx.fillStyle = '#d4a03c';
     ctx.textAlign = 'center';
-    ctx.fillText(`ROUND ${toRoman(this.round)}`, cx, timerY + 16);
+    const roundLabel = this.maxRounds > 0
+      ? `ROUND ${toRoman(this.round)}/${toRoman(this.maxRounds)}`
+      : `ROUND ${toRoman(this.round)}`;
+    ctx.fillText(roundLabel, cx, timerY + 16);
 
-    // Bottom Display: Countdown Number
+    // Bottom Display: Countdown Number OR Infinity Symbol (Till Knockout)
     ctx.fillStyle = '#0a0907';
     ctx.beginPath();
     ctx.roundRect(timerX + 4, timerY + 23, centerBoxW - 8, 27, [0, 0, 4, 4]);
     ctx.fill();
 
-    ctx.font = '800 24px "Inter", sans-serif';
-    ctx.fillStyle = this.roundTime <= 10 ? '#ef4444' : '#f0ebe0';
-    ctx.fillText(`${this.roundTime}`, cx, timerY + 44);
+    if (this.roundDuration === 0) {
+      ctx.font = '700 24px "Inter", sans-serif';
+      ctx.fillStyle = '#d4a03c';
+      ctx.fillText('∞', cx, timerY + 43);
+    } else {
+      ctx.font = '800 24px "Inter", sans-serif';
+      ctx.fillStyle = this.roundTime <= 10 ? '#ef4444' : '#f0ebe0';
+      ctx.fillText(`${this.roundTime}`, cx, timerY + 44);
+    }
 
     // ==========================================
     // 2. ATHLETE / PLAYER 1 HEALTH BAR (LEFT SIDE)

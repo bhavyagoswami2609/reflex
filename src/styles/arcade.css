@@ -675,6 +675,45 @@ body {
   color: var(--accent-gold-bright);
 }
 
+/* Segmented Control (Rounds & Duration) */
+.segmented-control {
+  display: flex;
+  background: rgba(255, 248, 230, 0.025);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.segment-btn {
+  flex: 1;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 10px 4px;
+  font-family: var(--font-primary);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-body);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.segment-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 248, 230, 0.05);
+}
+
+.segment-btn.active {
+  background: linear-gradient(135deg, rgba(212, 160, 60, 0.22) 0%, rgba(212, 160, 60, 0.08) 100%);
+  border-color: var(--border-accent);
+  color: var(--accent-gold-bright);
+  font-weight: 700;
+  box-shadow: 0 0 14px var(--accent-glow);
+}
+
 /* Motion Guidance Badge */
 .motion-guidance-badge {
   margin-top: 24px;
