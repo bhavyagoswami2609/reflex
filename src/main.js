@@ -234,7 +234,7 @@ class ShadowBoxingApp {
         const pipH = pipW * 0.65;
         const targetX = 28 + 95;
         const targetY = window.innerHeight - pipH - 28 - 44 - 24;
-        this.fx.addFloatingBadge('STANCE ALIGNED', targetX, targetY, '#d4a03c', 20);
+        this.fx.addFloatingBadge('STANCE CALIBRATED', targetX, targetY, '#d4a03c', 20);
       }
     }
   }
@@ -777,14 +777,25 @@ class ShadowBoxingApp {
       this.audio.playImpact(punch.score >= 80);
       this.fx.emitHitSpark(wx, wy, punch.grade);
 
-      const badgeColor = punch.score >= 90 ? '#eec05a' : punch.score >= 70 ? '#d4a03c' : '#9e3d2b';
-      this.fx.addFloatingBadge(`${punch.grade} ${punch.type}`, wx, wy - 30, badgeColor, 26);
-
-      if (punch.speedKmh > 0) {
-        this.fx.addFloatingBadge(`${punch.speedKmh} KM/H`, wx, wy + 12, '#f0ebe0', 14);
+      let prefix = 'SOLID';
+      let badgeColor = '#d4a03c';
+      if (punch.score >= 90) {
+        prefix = 'FLAWLESS';
+        badgeColor = '#eec05a';
+      } else if (punch.score >= 75) {
+        prefix = 'PRECISION';
+        badgeColor = '#eec05a';
+      } else if (punch.score >= 55) {
+        prefix = 'SOLID';
+        badgeColor = '#d4a03c';
+      } else {
+        prefix = 'OFF-AXIS';
+        badgeColor = '#9e3d2b';
       }
 
-      // Audio SFX already handled via playImpact
+      const pType = punch.type || 'STRIKE';
+      const speedStr = punch.speedKmh > 0 ? ` • ${punch.speedKmh} KM/H` : '';
+      this.fx.addFloatingBadge(`${prefix} ${pType}${speedStr}`, wx, wy - 30, badgeColor, 24);
     }
   }
 
@@ -1055,9 +1066,9 @@ class ShadowBoxingApp {
               this.fx.emitHitSpark(hx, hy, 'PERFECT');
               this.gameState.addSuper(6);
 
-              const blockLabel = this.playerConsecutiveBlocks === 1 ? 'GUARD BLOCKED' : this.playerConsecutiveBlocks === 2 ? 'GUARD STRAINED (2 BLOCKS)' : 'GUARD CRACKING! (3 BLOCKS)';
+              const blockLabel = this.playerConsecutiveBlocks === 1 ? 'GUARD DEFLECTED' : this.playerConsecutiveBlocks === 2 ? 'GUARD STRAINED' : 'GUARD COMPROMISED';
               const blockColor = this.playerConsecutiveBlocks === 1 ? '#d4a03c' : this.playerConsecutiveBlocks === 2 ? '#eec05a' : '#ef4444';
-              this.fx.addFloatingBadge(`${blockLabel} (${toRoman(stepIdx + 1)} / ${toRoman(totalSteps)})`, hx, hy - 30, blockColor, 24);
+              this.fx.addFloatingBadge(`${blockLabel} (${toRoman(stepIdx + 1)} / ${toRoman(totalSteps)})`, hx, hy - 30, blockColor, 22);
               this.combatAI.onPlayerEvaded(true, false);
             } else {
               this.audio.playWhoosh(1.3);
@@ -1068,21 +1079,21 @@ class ShadowBoxingApp {
               if (isOverextend) {
                 // Combo 3 Lunging Straight sidestepped! Bot overextends!
                 this.boxer3D.openMassiveCounterWindow(timestamp, 1600);
-                this.fx.addFloatingBadge('LUNGE SIDESTEPPED! OVEREXTENDED PUNISH', hx, hy - 40, '#22c55e', 32);
+                this.fx.addFloatingBadge('PIVOT SIDESTEP • OVEREXTENDED PUNISH', hx, hy - 40, '#22c55e', 24);
               } else if (isExtendedRecovery) {
                 // Combo 2 Body Hook missed! Bot in extended recovery frames!
                 this.boxer3D.openMassiveCounterWindow(timestamp, 1400);
-                this.fx.addFloatingBadge('BODY HOOK EVADED — EXTENDED RECOVERY', hx, hy - 40, '#22c55e', 30);
+                this.fx.addFloatingBadge('SLIPPED UNDER • EXTENDED RECOVERY', hx, hy - 40, '#22c55e', 24);
               } else {
                 const isLastStep = stepIdx >= totalSteps - 1;
                 if (isLastStep && this.boxer3D.comboFullyEvaded) {
                   const superBonus = this.boxer3D.activeCombo.superBonus || 40;
                   this.gameState.addSuper(superBonus);
-                  this.fx.addFloatingBadge('FULL SEQUENCE DEFENDED — APEX COUNTER', hx, hy - 45, '#eec05a', 30);
+                  this.fx.addFloatingBadge('SEQUENCE EVADED • MASTER COUNTER', hx, hy - 45, '#eec05a', 24);
                   this.combatAI.onPlayerEvaded(true, true);
                 } else {
-                  const slipText = dodgeType === 'SLIP' ? 'DODGED — SLIP' : 'DODGED — DUCK';
-                  this.fx.addFloatingBadge(`${slipText} (${toRoman(stepIdx + 1)} / ${toRoman(totalSteps)})`, hx, hy - 30, '#d4a03c', 24);
+                  const slipText = dodgeType === 'SLIP' ? 'SLIP' : 'DUCK';
+                  this.fx.addFloatingBadge(`${slipText} (${toRoman(stepIdx + 1)} / ${toRoman(totalSteps)})`, hx, hy - 30, '#d4a03c', 22);
                   this.combatAI.onPlayerEvaded(true, false);
                 }
               }
@@ -1094,18 +1105,18 @@ class ShadowBoxingApp {
             this.fx.addTrauma(dodgeType.includes('BLOCK') ? 0.75 : 0.45);
             this.fx.emitHitSpark(hx, hy, 'BAD');
 
-            let hitText = `STRIKE CONCEDED (${toRoman(stepIdx + 1)} / ${toRoman(totalSteps)})`;
+            let hitText = `HIT CONCEDED (${toRoman(stepIdx + 1)} / ${toRoman(totalSteps)})`;
             if (isLeaningTowardsPunch) {
-              hitText = 'LEANED INTO PUNCH';
+              hitText = 'LEANED IN • HIT CONCEDED';
             } else if (dodgeType === 'BLOCK_SHATTERED') {
-              hitText = `GUARD SHATTERED! BLOCK BREAK (-${stepDmg} HP)`;
+              hitText = `GUARD SHATTERED • -${stepDmg} HP`;
             } else if (dodgeType === 'BLOCK_CRACKED') {
-              hitText = `GUARD CRACKED FROM PRESSURE (-${stepDmg} HP)`;
+              hitText = `PRESSURE BREAK • -${stepDmg} HP`;
             } else if (dodgeType === 'GUARD_BROKEN_FAIL') {
-              hitText = `GUARD BROKEN — HIT CONCEDED (-${stepDmg} HP)`;
+              hitText = `UNGUARDED • -${stepDmg} HP`;
             }
 
-            this.fx.addFloatingBadge(hitText, hx, hy, '#ef4444', 28);
+            this.fx.addFloatingBadge(hitText, hx, hy, '#ef4444', 24);
             this.combatAI.onHitLanded(true, stepDmg);
           }
         } else {
@@ -1118,14 +1129,14 @@ class ShadowBoxingApp {
             if (dodgeType === 'BLOCK') {
               this.audio.playBlock();
               this.fx.emitHitSpark(hx, hy, 'PERFECT');
-              const blockLabel = this.playerConsecutiveBlocks === 1 ? 'GUARD BLOCKED' : this.playerConsecutiveBlocks === 2 ? 'GUARD STRAINED (2 BLOCKS)' : 'GUARD CRACKING! (3 BLOCKS)';
+              const blockLabel = this.playerConsecutiveBlocks === 1 ? 'GUARD DEFLECTED' : this.playerConsecutiveBlocks === 2 ? 'GUARD STRAINED' : 'GUARD COMPROMISED';
               const blockColor = this.playerConsecutiveBlocks === 1 ? '#d4a03c' : this.playerConsecutiveBlocks === 2 ? '#eec05a' : '#ef4444';
-              this.fx.addFloatingBadge(blockLabel, hx, hy - 30, blockColor, 26);
+              this.fx.addFloatingBadge(blockLabel, hx, hy - 30, blockColor, 22);
               this.gameState.addSuper(8);
             } else {
               this.fx.emitHitSpark(hx, hy, 'PERFECT');
-              const slipText = dodgeType === 'SLIP' ? 'DODGED — SLIP AWAY' : 'DODGED — DUCKED UNDER';
-              this.fx.addFloatingBadge(slipText, hx, hy - 30, '#d4a03c', 26);
+              const slipText = dodgeType === 'SLIP' ? 'CLEAN SLIP' : 'SWEPT UNDER';
+              this.fx.addFloatingBadge(slipText, hx, hy - 30, '#eec05a', 24);
               this.gameState.addSuper(15);
               this.boxer3D.openOpeningWindow(timestamp);
             }
@@ -1136,18 +1147,18 @@ class ShadowBoxingApp {
             this.fx.addTrauma(dodgeType.includes('BLOCK') ? 0.70 : 0.5);
             this.fx.emitHitSpark(hx, hy, 'BAD');
 
-            let hitText = `STRIKE CONCEDED (-${strikeDmg} HP)`;
+            let hitText = `HIT CONCEDED • -${strikeDmg} HP`;
             if (isLeaningTowardsPunch) {
-              hitText = `LEANED INTO PUNCH (-${strikeDmg} HP)`;
+              hitText = `LEANED IN • HIT CONCEDED (-${strikeDmg} HP)`;
             } else if (dodgeType === 'BLOCK_SHATTERED') {
-              hitText = `GUARD SHATTERED! BLOCK BREAK (-${strikeDmg} HP)`;
+              hitText = `GUARD SHATTERED • -${strikeDmg} HP`;
             } else if (dodgeType === 'BLOCK_CRACKED') {
-              hitText = `GUARD BROKEN FROM PRESSURE (-${strikeDmg} HP)`;
+              hitText = `PRESSURE BREAK • -${strikeDmg} HP`;
             } else if (dodgeType === 'GUARD_BROKEN_FAIL') {
-              hitText = `GUARD BROKEN — HIT CONCEDED (-${strikeDmg} HP)`;
+              hitText = `UNGUARDED • -${strikeDmg} HP`;
             }
 
-            this.fx.addFloatingBadge(hitText, hx, hy, '#ef4444', 28);
+            this.fx.addFloatingBadge(hitText, hx, hy, '#ef4444', 24);
             this.boxer3D.state = 'RECOVERING';
             this.boxer3D.stateTimer = timestamp;
             this.combatAI.onHitLanded(false, strikeDmg);
@@ -1173,7 +1184,7 @@ class ShadowBoxingApp {
         this.gameState.addSuper(20);
         this.fx.addTrauma(0.65);
         this.fx.emitHitSpark(wx, wy, 'PERFECT');
-        this.fx.addFloatingBadge('WIND-UP INTERRUPTED! COUNTER (+45 DMG)', wx, wy - 35, '#22c55e', 32);
+        this.fx.addFloatingBadge('INTERCEPT COUNTER • +45', wx, wy - 35, '#eec05a', 24);
         this.boxer3D.openOpeningWindow(timestamp, 1400);
         this.opponentAttackCooldown = timestamp + 1600;
         return;
@@ -1191,7 +1202,7 @@ class ShadowBoxingApp {
           this.gameState.addSuper(22);
           this.fx.addTrauma(0.70);
           this.fx.emitHitSpark(wx, wy, 'PERFECT');
-          this.fx.addFloatingBadge('BODY OPENING EXPLOITED! (+52 DMG)', wx, wy - 35, '#22c55e', 32);
+          this.fx.addFloatingBadge('LIVER SHOT • GUARD BYPASSED (+52)', wx, wy - 35, '#22c55e', 24);
           this.boxer3D.openOpeningWindow(timestamp, 1500);
           this.opponentAttackCooldown = timestamp + 1600;
           return;
@@ -1199,7 +1210,7 @@ class ShadowBoxingApp {
           // High strike blocked by bot's high guard
           this.audio.playBlock();
           this.fx.emitHitSpark(wx, wy, 'GOOD');
-          this.fx.addFloatingBadge('HIGH GUARD BLOCKED (BODY OPEN!)', wx, wy - 25, '#968c7e', 22);
+          this.fx.addFloatingBadge('HIGH GUARD DEFLECTION • BODY OPEN', wx, wy - 25, '#968c7e', 20);
           return;
         }
       }
@@ -1210,28 +1221,28 @@ class ShadowBoxingApp {
       if (isVulnerable) {
         let baseDmg = 20;
         let announcerCall = 'COUNTER!';
-        let badgeText = 'COUNTER STRIKE';
+        let badgeText = 'COUNTER INTERCEPT';
         let badgeColor = '#d4a03c';
 
         if (punch.type.includes('UPPERCUT')) {
           baseDmg = 46;
           announcerCall = 'UPPERCUT COUNTER!';
-          badgeText = 'RISING UPPERCUT PUNISH';
+          badgeText = 'FLUSH UPPERCUT COUNTER';
           badgeColor = '#eec05a';
         } else if (punch.type.includes('HOOK')) {
           baseDmg = 38;
           announcerCall = 'HOOK PUNISH!';
-          badgeText = 'HOOK COUNTER';
-          badgeColor = '#d4a03c';
+          badgeText = 'CHECK HOOK COUNTER';
+          badgeColor = '#eec05a';
         } else if (punch.type === 'CROSS') {
           baseDmg = 30;
           announcerCall = 'POWER CROSS!';
-          badgeText = 'POWER CROSS CADENCE';
+          badgeText = 'POWER CROSS COUNTER';
           badgeColor = '#eec05a';
         } else {
           baseDmg = 20;
           announcerCall = 'STIFF JAB!';
-          badgeText = 'JAB INTERCEPT';
+          badgeText = 'STIFF JAB INTERCEPT';
           badgeColor = '#d4a03c';
         }
 
@@ -1243,7 +1254,7 @@ class ShadowBoxingApp {
         this.gameState.addSuper(isMassive ? 18 : 12);
         this.fx.addTrauma(isMassive ? 0.70 : 0.50);
         this.fx.emitHitSpark(wx, wy, 'PERFECT');
-        this.fx.addFloatingBadge(`${badgeText} (+${finalDmg} DMG)`, wx, wy - 35, badgeColor, 30);
+        this.fx.addFloatingBadge(`${badgeText} • +${finalDmg}`, wx, wy - 35, badgeColor, 24);
         this.combatAI.profiler.playerCounterStrikes++;
         this.botConsecutiveBlocks = 0;
       } else {
@@ -1264,7 +1275,7 @@ class ShadowBoxingApp {
             this.gameState.addSuper(15);
             this.fx.addTrauma(0.55);
             this.fx.emitHitSpark(wx, wy, 'PERFECT');
-            this.fx.addFloatingBadge('BODY SHOT FOUND OPENING! (+34 DMG)', wx, wy - 35, '#22c55e', 30);
+            this.fx.addFloatingBadge('CLEAN BODY SHOT • +34', wx, wy - 35, '#22c55e', 24);
             this.boxer3D.openOpeningWindow(timestamp, 1100);
           } else {
             // Player striking high at bot's high guard
@@ -1282,7 +1293,7 @@ class ShadowBoxingApp {
               this.gameState.addSuper(20);
               this.fx.addTrauma(0.70);
               this.fx.emitHitSpark(wx, wy, 'PERFECT');
-              this.fx.addFloatingBadge('OPPONENT GUARD BROKEN! (+36 DMG)', wx, wy - 40, '#ef4444', 34);
+              this.fx.addFloatingBadge('GUARD CRACKED • CRITICAL (+36)', wx, wy - 40, '#eec05a', 26);
               this.boxer3D.openMassiveCounterWindow(timestamp, 1500);
             } else {
               // Bot blocks or slips
@@ -1290,14 +1301,14 @@ class ShadowBoxingApp {
               if (shouldSlip) {
                 this.boxer3D.defend(punch.type.includes('RIGHT') ? 'SLIP_LEFT' : 'SLIP_RIGHT');
                 this.audio.playWhoosh(1.4);
-                this.fx.addFloatingBadge('OPPONENT DEFENSIVE SLIP', wx, wy - 30, '#d4a03c', 24);
+                this.fx.addFloatingBadge('SLIPPED AWAY', wx, wy - 30, '#d4a03c', 20);
               } else {
                 this.boxer3D.defend('BLOCK');
                 this.audio.playBlock();
                 this.gameState.damageRival(3);
                 this.fx.emitHitSpark(wx, wy, 'GOOD');
-                const blockText = `OPPONENT GUARD (${this.botConsecutiveBlocks}/3 BLOCKS) (+3 CHIP)`;
-                this.fx.addFloatingBadge(blockText, wx, wy - 25, '#968c7e', 22);
+                const blockText = `GUARD DEFLECTED (${toRoman(this.botConsecutiveBlocks)} / III) • +3`;
+                this.fx.addFloatingBadge(blockText, wx, wy - 25, '#968c7e', 20);
               }
             }
           }
@@ -1313,7 +1324,7 @@ class ShadowBoxingApp {
             this.audio.playBlock();
             this.gameState.damageRival(3);
             this.fx.emitHitSpark(wx, wy, 'GOOD');
-            this.fx.addFloatingBadge('FLURRY DEFENDED (+3 CHIP)', wx, wy - 25, '#968c7e', 22);
+            this.fx.addFloatingBadge('COVER DEFLECTED • +3', wx, wy - 25, '#968c7e', 20);
             this.boxer3D.defenseDuration = Math.min(700, this.boxer3D.defenseDuration + 150);
 
             if (this.playerSpamFlurryCount >= 2 && diff !== 'NOVICE') {
@@ -1322,17 +1333,17 @@ class ShadowBoxingApp {
                 this.playerSpamFlurryCount = 0;
                 this.audio.playWhoosh(1.4);
                 this.boxer3D.startAttack(diff === 'CHAMPION' ? 'RIGHT_CROSS' : 'LEFT_HOOK', 280);
-                this.fx.addFloatingBadge('CADENCE PARRIED — BOT COUNTERS', wx, wy - 40, '#9e3d2b', 28);
+                this.fx.addFloatingBadge('PARRIED • RETURN STRIKE', wx, wy - 40, '#9e3d2b', 24);
               }
             }
           } else {
             this.audio.playWhoosh(1.4);
-            this.fx.addFloatingBadge('FLURRY EVADED — CLEAN MISS', wx, wy - 30, '#d4a03c', 24);
+            this.fx.addFloatingBadge('EVADED', wx, wy - 30, '#d4a03c', 20);
 
             if (this.playerSpamFlurryCount >= 2 && diff !== 'NOVICE') {
               this.playerSpamFlurryCount = 0;
               this.boxer3D.startAttack('UPPERCUT', 290);
-              this.fx.addFloatingBadge('SLIP & RIP COUNTER', wx, wy - 40, '#9e3d2b', 28);
+              this.fx.addFloatingBadge('SLIP-COUNTER', wx, wy - 40, '#9e3d2b', 24);
             }
           }
         } else if (this.boxer3D.state === 'HURT') {
@@ -1341,7 +1352,7 @@ class ShadowBoxingApp {
             this.audio.playBlock();
             this.gameState.damageRival(3);
             this.fx.emitHitSpark(wx, wy, 'GOOD');
-            this.fx.addFloatingBadge('GUARD RECOVERED (+3 CHIP)', wx, wy - 25, '#d4a03c', 22);
+            this.fx.addFloatingBadge('GUARD RE-SET • +3', wx, wy - 25, '#d4a03c', 20);
           } else {
             let clipDmg = 20;
             if (punch.type?.includes('UPPERCUT')) clipDmg = 28;
@@ -1352,7 +1363,7 @@ class ShadowBoxingApp {
             this.boxer3D.takeHit(clipDmg, punch.type);
             this.gameState.damageRival(clipDmg);
             this.fx.emitHitSpark(wx, wy, 'GOOD');
-            this.fx.addFloatingBadge(`SEQUENCE CLIP (+${clipDmg} DMG)`, wx, wy - 30, '#d4a03c', 26);
+            this.fx.addFloatingBadge(`PUNISH CLIP • +${clipDmg}`, wx, wy - 30, '#d4a03c', 22);
           }
         } else {
           this.playerSpamFlurryCount = 0;
@@ -1376,7 +1387,7 @@ class ShadowBoxingApp {
 
             if (defenseType === 'DUCK') {
               this.audio.playWhoosh(1.5);
-              this.fx.addFloatingBadge('OPPONENT DUCKED UNDER', wx, wy - 35, '#968c7e', 24);
+              this.fx.addFloatingBadge('DUCKED UNDER', wx, wy - 35, '#968c7e', 20);
               if (diff !== 'NOVICE' && Math.random() < (diff === 'CHAMPION' ? 0.80 : 0.50)) {
                 setTimeout(() => {
                   if (this.boxer3D.state === 'IDLE' && !this.gameState.isMatchOver) {
@@ -1388,7 +1399,7 @@ class ShadowBoxingApp {
             } else if (defenseType === 'SLIP_LEFT' || defenseType === 'SLIP_RIGHT') {
               this.audio.playWhoosh(1.4);
               const dir = (defenseType === 'SLIP_LEFT') ? 'LEFT' : 'RIGHT';
-              this.fx.addFloatingBadge(`OPPONENT SLIPPED ${dir}`, wx, wy - 35, '#968c7e', 24);
+              this.fx.addFloatingBadge(`SLIPPED ${dir}`, wx, wy - 35, '#968c7e', 20);
               if (diff !== 'NOVICE' && Math.random() < (diff === 'CHAMPION' ? 0.75 : 0.45)) {
                 setTimeout(() => {
                   if (this.boxer3D.state === 'IDLE' && !this.gameState.isMatchOver) {
@@ -1401,20 +1412,22 @@ class ShadowBoxingApp {
               this.audio.playBlock();
               this.gameState.damageRival(3);
               this.fx.emitHitSpark(wx, wy, 'GOOD');
-              this.fx.addFloatingBadge('OPPONENT BLOCKED (+3 CHIP)', wx, wy - 25, '#968c7e', 22);
+              this.fx.addFloatingBadge('GUARD DEFLECTED • +3', wx, wy - 25, '#968c7e', 20);
             }
           } else {
             let cleanDmg = 22;
-            if (punch.type?.includes('UPPERCUT')) cleanDmg = 32;
-            else if (punch.type?.includes('HOOK')) cleanDmg = 28;
-            else if (punch.type?.includes('CROSS')) cleanDmg = 24;
-            else cleanDmg = 18;
+            let strikeName = 'CLEAN STRIKE';
+            if (punch.type?.includes('UPPERCUT')) { cleanDmg = 32; strikeName = 'LIFTING UPPERCUT'; }
+            else if (punch.type?.includes('HOOK')) { cleanDmg = 28; strikeName = 'CRACKING HOOK'; }
+            else if (punch.type?.includes('CROSS')) { cleanDmg = 24; strikeName = 'FLUSH CROSS'; }
+            else { cleanDmg = 18; strikeName = 'STIFF JAB'; }
+
             this.audio.playImpact(false);
             this.boxer3D.takeHit(cleanDmg, punch.type);
             this.gameState.damageRival(cleanDmg);
             this.gameState.addSuper(6);
             this.fx.emitHitSpark(wx, wy, 'PERFECT');
-            this.fx.addFloatingBadge(`CLEAN STRIKE (+${cleanDmg} DMG)`, wx, wy - 30, '#eec05a', 28);
+            this.fx.addFloatingBadge(`${strikeName} • +${cleanDmg}`, wx, wy - 30, '#eec05a', 24);
           }
         }
       }

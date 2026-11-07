@@ -504,26 +504,52 @@ export class GameState {
 
   drawComboStreak(ctx, width, height) {
     ctx.save();
-    const x = 54;
-    const y = height * 0.38;
+    const x = Math.max(28, width * 0.035);
+    const y = height * 0.36;
 
-    ctx.font = '800 32px "Inter", sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#eec05a';
-    ctx.strokeStyle = '#0a0907';
-    ctx.lineWidth = 4;
-    ctx.shadowColor = 'rgba(212, 160, 60, 0.4)';
+    const streakCount = this.comboCount;
+    const bonusPct = Math.round((this.comboMultiplier - 1.0) * 100);
+
+    const titleText = `${streakCount}-STRIKE COMBO`;
+    const subText = `+${bonusPct}% FORCE MULTIPLIER`;
+
+    ctx.font = '800 18px "Inter", sans-serif';
+    const titleW = ctx.measureText(titleText).width;
+    ctx.font = '700 10px "JetBrains Mono", monospace';
+    const subW = ctx.measureText(subText).width;
+    const boxW = Math.max(titleW, subW) + 32;
+    const boxH = 50;
+
+    // Dark luxury frosted container
+    ctx.shadowColor = 'rgba(238, 192, 90, 0.35)';
     ctx.shadowBlur = 14;
+    ctx.fillStyle = 'rgba(14, 12, 10, 0.92)';
+    ctx.beginPath();
+    ctx.roundRect(x, y, boxW, boxH, 8);
+    ctx.fill();
+    ctx.shadowBlur = 0;
 
-    const text = `${toRoman(this.comboCount)} STRIKE SEQUENCE`;
-    ctx.strokeText(text, x, y);
-    ctx.fillText(text, x, y);
+    ctx.strokeStyle = '#d4a03c';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
 
-    ctx.font = '700 12px "JetBrains Mono", monospace';
+    // Accent line on left edge
+    ctx.fillStyle = '#eec05a';
+    ctx.beginPath();
+    ctx.roundRect(x + 3, y + 6, 3, boxH - 12, 1.5);
+    ctx.fill();
+
+    // Primary Combo Title
+    ctx.font = '800 17px "Inter", sans-serif';
+    ctx.fillStyle = '#eec05a';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(titleText, x + 16, y + 24);
+
+    // Subtitle Force Multiplier
+    ctx.font = '700 10px "JetBrains Mono", monospace';
     ctx.fillStyle = '#f0ebe0';
-    const multText = `+${Math.round((this.comboMultiplier - 1.0) * 100)}% KINEMATIC FORCE`;
-    ctx.strokeText(multText, x, y + 24);
-    ctx.fillText(multText, x, y + 24);
+    ctx.fillText(subText, x + 16, y + 40);
 
     ctx.restore();
   }
