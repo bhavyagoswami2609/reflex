@@ -395,11 +395,13 @@ export class VRCameraController {
 
     ctx.save();
 
-    // Top Right Reticle Pill / Gimbal
+    // Bottom Left Reticle Pill / Gimbal (positioned above PIP camera in bottom left area)
     const boxW = 190;
-    const boxH = 46;
-    const x = width - boxW - 28;
-    const y = 80;
+    const boxH = 44;
+    const pipW = Math.max(200, Math.min(270, width * 0.20));
+    const pipH = pipW * 0.65;
+    const x = 28;
+    const y = height - pipH - 28 - boxH - 10;
 
     // Dark luxury backdrop
     ctx.fillStyle = 'rgba(17, 16, 13, 0.92)';

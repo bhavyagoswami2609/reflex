@@ -452,64 +452,10 @@ export class CombatAI {
   }
 
   /**
-   * Renders the Classical Pugilism Tactical Thought HUD on Canvas
+   * Tactical Thought HUD on Canvas - Disabled per user request
    */
   renderHUD(ctx, width, height) {
-    ctx.save();
-
-    const thoughtText = this.currentThought;
-    const color = this.thoughtColor || '#d4a03c';
-    const archetypeInfo = this.archetypeParams[this.currentArchetype] || this.archetypeParams.PROBING;
-
-    // Top Center HUD positioning (below health bars and round timer)
-    const centerX = width * 0.5;
-    const topY = 74;
-
-    ctx.font = '600 11px "Inter", sans-serif';
-    const textWidth = ctx.measureText(thoughtText).width;
-    const bannerW = Math.max(340, textWidth + 56);
-    const bannerH = 26;
-    const bannerX = centerX - bannerW * 0.5;
-
-    // Dark luxury background capsule with gilded border
-    ctx.fillStyle = 'rgba(17, 16, 13, 0.94)';
-    ctx.strokeStyle = '#d4a03c';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.roundRect(bannerX, topY, bannerW, bannerH, 13);
-    ctx.fill();
-    ctx.stroke();
-
-    // Archetype Badge Pill on Left Edge with Difficulty indicator
-    const badgeText = `${this.difficulty} • ${archetypeInfo.label}`;
-    ctx.font = '700 9px "JetBrains Mono", monospace';
-    const badgeW = ctx.measureText(badgeText).width + 12;
-    ctx.fillStyle = '#d4a03c';
-    ctx.beginPath();
-    ctx.roundRect(bannerX + 4, topY + 4, badgeW, bannerH - 8, 8);
-    ctx.fill();
-
-    ctx.fillStyle = '#0a0907';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(badgeText, bannerX + 4 + badgeW * 0.5, topY + bannerH * 0.5);
-
-    // Thought Text
-    ctx.font = '500 11px "Inter", sans-serif';
-    ctx.fillStyle = '#f0ebe0';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    const textX = bannerX + badgeW + 14;
-    ctx.fillText(thoughtText, textX, topY + bannerH * 0.5);
-
-    // Subtle gold pulse indicator on right edge
-    const pulseAlpha = 0.5 + Math.sin(performance.now() * 0.008) * 0.5;
-    ctx.fillStyle = '#d4a03c';
-    ctx.globalAlpha = pulseAlpha;
-    ctx.beginPath();
-    ctx.arc(bannerX + bannerW - 12, topY + bannerH * 0.5, 3.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
+    // Disabled per user request
+    return;
   }
 }

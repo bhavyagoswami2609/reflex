@@ -194,7 +194,11 @@ class ShadowBoxingApp {
       this.vrCamera.recenter(this.lastMirroredLandmarks);
       if (ok) {
         this.audio.playWebRecenterChime();
-        this.fx.addFloatingBadge('STANCE ALIGNED', window.innerWidth * 0.5, window.innerHeight * 0.30, '#d4a03c', 28);
+        const pipW = Math.max(200, Math.min(270, window.innerWidth * 0.20));
+        const pipH = pipW * 0.65;
+        const targetX = 28 + 95;
+        const targetY = window.innerHeight - pipH - 28 - 44 - 24;
+        this.fx.addFloatingBadge('STANCE ALIGNED', targetX, targetY, '#d4a03c', 20);
       }
     }
   }
@@ -568,11 +572,10 @@ class ShadowBoxingApp {
     this.fx.update(dt);
     this.fx.render(this.ctx);
 
-    // 7. Screen-Space Diegetic Overlays (HUD, Round Timer, VR Telemetry, Combat AI)
+    // 7. Screen-Space Diegetic Overlays (HUD, Round Timer, VR Telemetry)
     if (this.currentMode === 'REFLEX') {
       const oppName = this.boxer3D.characterType === 'human' ? 'SHANE FAZEN (SPARRING)' : 'TITAN AUTOMATON';
       this.gameState.renderHUD(this.ctx, width, height, oppName);
-      this.combatAI.renderHUD(this.ctx, width, height);
     }
     this.vrCamera.renderVRHUD(this.ctx, width, height);
 
