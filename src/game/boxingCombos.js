@@ -30,10 +30,10 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'GUARD',
         strikePose: 'JAB',
         chamberPose: 'JAB_TO_CROSS_CHAMBER',
-        windupMs: 440,
+        windupMs: 640,
         strikeMs: 140,
-        transitionMs: 130, // Fast kinetic snap into cross chamber
-        damage: 35,
+        transitionMs: 120,
+        damage: 22,
         isFeint: false
       },
       {
@@ -45,13 +45,13 @@ export const COMBO_DEFINITIONS = {
         requiredDefense: 'SLIP_LEFT',
         alternativeDefense: 'HIGH_GUARD_BLOCK',
         screenTargetOffset: { x: 0.0, y: -0.05 },
-        windupPose: 'JAB_TO_CROSS_CHAMBER', // Fires directly from loaded rear hip!
+        windupPose: 'JAB_TO_CROSS_CHAMBER',
         strikePose: 'CROSS',
-        chamberPose: null, // Final hit returns to guard
-        windupMs: 340,
+        chamberPose: null,
+        windupMs: 620,
         strikeMs: 160,
         transitionMs: 0,
-        damage: 65,
+        damage: 35,
         isFeint: false
       }
     ]
@@ -81,10 +81,10 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'GUARD',
         strikePose: 'JAB',
         chamberPose: 'JAB_TO_CROSS_CHAMBER',
-        windupMs: 420,
+        windupMs: 640,
         strikeMs: 130,
         transitionMs: 120,
-        damage: 30,
+        damage: 20,
         isFeint: false
       },
       {
@@ -98,11 +98,11 @@ export const COMBO_DEFINITIONS = {
         screenTargetOffset: { x: 0.0, y: -0.05 },
         windupPose: 'JAB_TO_CROSS_CHAMBER',
         strikePose: 'CROSS',
-        chamberPose: 'CROSS_TO_HOOK_CHAMBER', // Cross follow-through coils lead shoulder
-        windupMs: 320,
+        chamberPose: 'CROSS_TO_HOOK_CHAMBER',
+        windupMs: 600,
         strikeMs: 150,
-        transitionMs: 140,
-        damage: 55,
+        transitionMs: 130,
+        damage: 32,
         isFeint: false
       },
       {
@@ -114,13 +114,13 @@ export const COMBO_DEFINITIONS = {
         requiredDefense: 'DUCK',
         alternativeDefense: 'SLIP_RIGHT',
         screenTargetOffset: { x: 0.13, y: -0.08 },
-        windupPose: 'CROSS_TO_HOOK_CHAMBER', // Sweeps directly from coiled lead hip!
+        windupPose: 'CROSS_TO_HOOK_CHAMBER',
         strikePose: 'HOOK',
         chamberPose: null,
-        windupMs: 320,
+        windupMs: 660,
         strikeMs: 160,
         transitionMs: 0,
-        damage: 75,
+        damage: 42,
         isFeint: false
       }
     ]
@@ -149,11 +149,11 @@ export const COMBO_DEFINITIONS = {
         screenTargetOffset: { x: 0.0, y: -0.07 },
         windupPose: 'GUARD',
         strikePose: 'JAB',
-        chamberPose: 'JAB_TO_BODY_CHAMBER', // Level drop & elbow tuck
-        windupMs: 440,
+        chamberPose: 'JAB_TO_BODY_CHAMBER',
+        windupMs: 620,
         strikeMs: 130,
-        transitionMs: 140,
-        damage: 30,
+        transitionMs: 130,
+        damage: 20,
         isFeint: false
       },
       {
@@ -162,16 +162,16 @@ export const COMBO_DEFINITIONS = {
         name: 'SHOVEL BODY HOOK',
         arm: 'LEFT',
         targetRegion: 'RIBS',
-        requiredDefense: 'HIGH_GUARD_BLOCK', // Must drop elbows or duck
+        requiredDefense: 'HIGH_GUARD_BLOCK',
         alternativeDefense: 'DUCK',
         screenTargetOffset: { x: 0.09, y: 0.19 },
         windupPose: 'JAB_TO_BODY_CHAMBER',
         strikePose: 'BODY_SHOT_IMPACT',
         chamberPose: null,
-        windupMs: 340,
+        windupMs: 680,
         strikeMs: 170,
         transitionMs: 0,
-        damage: 70,
+        damage: 45,
         isFeint: false
       }
     ]
@@ -200,11 +200,11 @@ export const COMBO_DEFINITIONS = {
         screenTargetOffset: { x: 0.12, y: -0.08 },
         windupPose: 'GUARD',
         strikePose: 'HOOK',
-        chamberPose: 'HOOK_TO_UPPERCUT_CHAMBER', // Weight sinks onto rear hip
-        windupMs: 400,
+        chamberPose: 'HOOK_TO_UPPERCUT_CHAMBER',
+        windupMs: 660,
         strikeMs: 150,
         transitionMs: 130,
-        damage: 65,
+        damage: 38,
         isFeint: false
       },
       {
@@ -219,10 +219,10 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'HOOK_TO_UPPERCUT_CHAMBER',
         strikePose: 'UPPERCUT_IMPACT',
         chamberPose: null,
-        windupMs: 330,
+        windupMs: 680,
         strikeMs: 160,
         transitionMs: 0,
-        damage: 90,
+        damage: 52,
         isFeint: false
       }
     ]
@@ -246,15 +246,15 @@ export const COMBO_DEFINITIONS = {
         name: 'SHOULDER FEINT',
         arm: 'LEFT',
         targetRegion: 'CHIN',
-        requiredDefense: 'NONE', // Feint itself deals no damage, but warns player
+        requiredDefense: 'NONE',
         alternativeDefense: 'HIGH_GUARD_BLOCK',
         screenTargetOffset: { x: 0.0, y: -0.05 },
         windupPose: 'GUARD',
         strikePose: 'FEINT_JAB_IMPACT',
-        chamberPose: 'FEINT_STUTTER_CHAMBER', // Stutters and coils rear shoulder
-        windupMs: 260,
+        chamberPose: 'FEINT_STUTTER_CHAMBER',
+        windupMs: 480,
         strikeMs: 110,
-        transitionMs: 110,
+        transitionMs: 120,
         damage: 0,
         isFeint: true
       },
@@ -270,10 +270,10 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'FEINT_STUTTER_CHAMBER',
         strikePose: 'OVERHAND_IMPACT',
         chamberPose: null,
-        windupMs: 360,
+        windupMs: 760,
         strikeMs: 170,
         transitionMs: 0,
-        damage: 95,
+        damage: 55,
         isFeint: false
       }
     ]
@@ -303,10 +303,10 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'GUARD',
         strikePose: 'JAB',
         chamberPose: 'JAB_TO_CROSS_CHAMBER',
-        windupMs: 380,
+        windupMs: 620,
         strikeMs: 120,
         transitionMs: 110,
-        damage: 30,
+        damage: 18,
         isFeint: false
       },
       {
@@ -321,10 +321,10 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'JAB_TO_CROSS_CHAMBER',
         strikePose: 'CROSS',
         chamberPose: 'CROSS_TO_HOOK_CHAMBER',
-        windupMs: 300,
+        windupMs: 600,
         strikeMs: 130,
         transitionMs: 110,
-        damage: 45,
+        damage: 28,
         isFeint: false
       },
       {
@@ -338,11 +338,11 @@ export const COMBO_DEFINITIONS = {
         screenTargetOffset: { x: 0.12, y: -0.08 },
         windupPose: 'CROSS_TO_HOOK_CHAMBER',
         strikePose: 'HOOK',
-        chamberPose: 'HOOK_TO_CROSS_CHAMBER', // Hook follow-through coils right cross again
-        windupMs: 300,
+        chamberPose: 'HOOK_TO_CROSS_CHAMBER',
+        windupMs: 640,
         strikeMs: 140,
         transitionMs: 110,
-        damage: 55,
+        damage: 34,
         isFeint: false
       },
       {
@@ -357,19 +357,16 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'HOOK_TO_CROSS_CHAMBER',
         strikePose: 'CROSS',
         chamberPose: null,
-        windupMs: 320,
-        strikeMs: 170,
+        windupMs: 680,
+        strikeMs: 160,
         transitionMs: 0,
-        damage: 80,
+        damage: 46,
         isFeint: false
       }
     ]
   },
 
   // 7. The Slip-Trap (Aggressive Counter)
-  // Sequence: Lead Jab -> Straight Cross -> Quick Slip (Dodges high attacks) -> Heavy Rear Hook (Block Break)
-  // Rhythm: Fast, Fast, Brief Pause (Slip), Heavy Wind-up
-  // The Opening: Distinct wind-up before Heavy Rear Hook - player can interrupt with fast lead jab or duck under.
   SLIP_TRAP: {
     id: 'SLIP_TRAP',
     name: 'THE SLIP-TRAP',
@@ -393,10 +390,10 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'GUARD',
         strikePose: 'JAB',
         chamberPose: 'JAB_TO_CROSS_CHAMBER',
-        windupMs: 340, // Fast
+        windupMs: 620,
         strikeMs: 120,
-        transitionMs: 100,
-        damage: 25,
+        transitionMs: 110,
+        damage: 18,
         isFeint: false
       },
       {
@@ -411,10 +408,10 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'JAB_TO_CROSS_CHAMBER',
         strikePose: 'CROSS',
         chamberPose: 'SLIP_LEFT',
-        windupMs: 260, // Fast
+        windupMs: 600,
         strikeMs: 130,
         transitionMs: 120,
-        damage: 40,
+        damage: 28,
         isFeint: false
       },
       {
@@ -429,7 +426,7 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'SLIP_LEFT',
         strikePose: 'SLIP_LEFT',
         chamberPose: 'RIGHT_HOOK_WINDUP',
-        windupMs: 220, // Brief Pause (Slip)
+        windupMs: 480,
         strikeMs: 100,
         transitionMs: 130,
         damage: 0,
@@ -448,21 +445,18 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'RIGHT_HOOK_WINDUP',
         strikePose: 'RIGHT_HOOK_IMPACT',
         chamberPose: null,
-        windupMs: 540, // Heavy Wind-up telegraph
+        windupMs: 820,
         strikeMs: 180,
         transitionMs: 0,
-        damage: 85,
+        damage: 58,
         isFeint: false,
-        isBlockBreak: true, // Shatters guard if blocked!
-        hasInterruptibleOpening: true // Fast lead jab can interrupt during wind-up!
+        isBlockBreak: true,
+        hasInterruptibleOpening: true
       }
     ]
   },
 
   // 8. The Turtle & Burst (Defensive Mix-up)
-  // Sequence: High Guard (Blocks 1-2 hits) -> Lead Uppercut -> Rear Cross -> Lead Body Hook
-  // Rhythm: Stationary Hold, Snap, Snap, Heavy follow-through
-  // The Opening: During initial High Guard, bot's body is completely unprotected against low body hooks. Missing final Body Hook leaves bot in extended recovery frames.
   TURTLE_BURST: {
     id: 'TURTLE_BURST',
     name: 'THE TURTLE & BURST',
@@ -486,13 +480,13 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'HIGH_GUARD_BLOCK',
         strikePose: 'HIGH_GUARD_BLOCK',
         chamberPose: 'HOOK_TO_UPPERCUT_CHAMBER',
-        windupMs: 440, // Stationary Hold
+        windupMs: 580,
         strikeMs: 100,
         transitionMs: 110,
         damage: 0,
         isFeint: true,
         isTurtleHold: true,
-        bodyVulnerable: true // Body completely open to body hooks
+        bodyVulnerable: true
       },
       {
         stepIndex: 1,
@@ -506,10 +500,10 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'HOOK_TO_UPPERCUT_CHAMBER',
         strikePose: 'UPPERCUT_IMPACT',
         chamberPose: 'JAB_TO_CROSS_CHAMBER',
-        windupMs: 270, // Snap
+        windupMs: 620,
         strikeMs: 130,
-        transitionMs: 100,
-        damage: 48,
+        transitionMs: 110,
+        damage: 32,
         isFeint: false
       },
       {
@@ -524,10 +518,10 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'JAB_TO_CROSS_CHAMBER',
         strikePose: 'CROSS',
         chamberPose: 'JAB_TO_BODY_CHAMBER',
-        windupMs: 250, // Snap
+        windupMs: 600,
         strikeMs: 140,
-        transitionMs: 130,
-        damage: 55,
+        transitionMs: 120,
+        damage: 34,
         isFeint: false
       },
       {
@@ -542,20 +536,17 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'JAB_TO_BODY_CHAMBER',
         strikePose: 'BODY_SHOT_IMPACT',
         chamberPose: null,
-        windupMs: 420, // Heavy follow-through
-        strikeMs: 180,
+        windupMs: 720,
+        strikeMs: 170,
         transitionMs: 0,
-        damage: 80,
+        damage: 48,
         isFeint: false,
-        extendedRecoveryOnMiss: true // Missing this leaves bot in extended recovery frames
+        extendedRecoveryOnMiss: true
       }
     ]
   },
 
   // 9. The Shell-Cracker (Spacing Pressure)
-  // Sequence: Lead Body Jab -> Rear Overhand -> Dodge/Retreat -> Lunging Straight (Block Break)
-  // Rhythm: Low hit, High hit, Retreat, Long Dash-In
-  // The Opening: The bot always retreats before launching the lunging strike. If the player sidesteps the linear lunging straight instead of trying to block it, the bot overextends for a punish.
   SHELL_CRACKER: {
     id: 'SHELL_CRACKER',
     name: 'THE SHELL-CRACKER',
@@ -579,10 +570,10 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'JAB_TO_BODY_CHAMBER',
         strikePose: 'BODY_SHOT_IMPACT',
         chamberPose: 'FEINT_STUTTER_CHAMBER',
-        windupMs: 340, // Low hit
+        windupMs: 640,
         strikeMs: 130,
         transitionMs: 120,
-        damage: 32,
+        damage: 22,
         isFeint: false
       },
       {
@@ -597,10 +588,10 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'FEINT_STUTTER_CHAMBER',
         strikePose: 'OVERHAND_IMPACT',
         chamberPose: 'GUARD',
-        windupMs: 350, // High hit
+        windupMs: 700,
         strikeMs: 160,
-        transitionMs: 140,
-        damage: 60,
+        transitionMs: 130,
+        damage: 40,
         isFeint: false
       },
       {
@@ -615,7 +606,7 @@ export const COMBO_DEFINITIONS = {
         windupPose: 'GUARD',
         strikePose: 'GUARD',
         chamberPose: 'JAB_TO_CROSS_CHAMBER',
-        windupMs: 380, // Retreat pause
+        windupMs: 520,
         strikeMs: 100,
         transitionMs: 130,
         damage: 0,
@@ -628,19 +619,19 @@ export const COMBO_DEFINITIONS = {
         name: 'LUNGING STRAIGHT',
         arm: 'RIGHT',
         targetRegion: 'CHIN',
-        requiredDefense: 'SLIP_LEFT', // Sidestep/slip
+        requiredDefense: 'SLIP_LEFT',
         alternativeDefense: 'SLIP_RIGHT',
         screenTargetOffset: { x: 0.0, y: -0.05 },
         windupPose: 'JAB_TO_CROSS_CHAMBER',
         strikePose: 'CROSS',
         chamberPose: null,
-        windupMs: 480, // Long Dash-In
+        windupMs: 800,
         strikeMs: 180,
         transitionMs: 0,
-        damage: 90,
+        damage: 55,
         isFeint: false,
-        isBlockBreak: true, // Shatters guard if blocked!
-        overextendsOnEvade: true // Sidestepping causes bot to overextend for punish!
+        isBlockBreak: true,
+        overextendsOnEvade: true
       }
     ]
   }

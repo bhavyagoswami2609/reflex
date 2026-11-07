@@ -16,7 +16,7 @@ export const DIFFICULTY_CONFIGS = {
     id: 'NOVICE',
     name: 'NOVICE',
     label: 'NOVICE',
-    speedMultiplier: 0.92,
+    speedMultiplier: 0.85,
     cooldownMultiplier: 1.25,
     comboProbabilityMultiplier: 0.8,
     openingDurationMultiplier: 1.25,
@@ -28,7 +28,7 @@ export const DIFFICULTY_CONFIGS = {
     id: 'PROFESSIONAL',
     name: 'PROFESSIONAL',
     label: 'PROFESSIONAL',
-    speedMultiplier: 1.15,
+    speedMultiplier: 1.00,
     cooldownMultiplier: 0.90,
     comboProbabilityMultiplier: 1.2,
     openingDurationMultiplier: 0.95,
@@ -40,7 +40,7 @@ export const DIFFICULTY_CONFIGS = {
     id: 'CHAMPION',
     name: 'CHAMPION',
     label: 'CHAMPION',
-    speedMultiplier: 1.35,
+    speedMultiplier: 1.15,
     cooldownMultiplier: 0.70,
     comboProbabilityMultiplier: 1.5,
     openingDurationMultiplier: 0.70,
@@ -99,7 +99,7 @@ export class CombatAI {
       PROBING: {
         comboProbability: 0.25,
         feintProbability: 0.10,
-        speedMultiplier: 1.0,
+        speedMultiplier: 1.00,
         cooldownMs: 850,
         color: '#d4a03c',
         label: 'DISTANCE APPRAISAL'
@@ -107,7 +107,7 @@ export class CombatAI {
       TACTICAL_ADAPTIVE: {
         comboProbability: 0.70,
         feintProbability: 0.25,
-        speedMultiplier: 1.12,
+        speedMultiplier: 1.02,
         cooldownMs: 700,
         color: '#eec05a',
         label: 'TACTICAL COUNTERPOISE'
@@ -115,7 +115,7 @@ export class CombatAI {
       PRESSURE_COMBOS: {
         comboProbability: 0.85,
         feintProbability: 0.15,
-        speedMultiplier: 1.18,
+        speedMultiplier: 1.05,
         cooldownMs: 580,
         color: '#9e3d2b',
         label: 'IMPERIAL BARRAGE'
@@ -123,7 +123,7 @@ export class CombatAI {
       COUNTER_PUNCHER: {
         comboProbability: 0.65,
         feintProbability: 0.20,
-        speedMultiplier: 1.15,
+        speedMultiplier: 1.03,
         cooldownMs: 650,
         color: '#d4a03c',
         label: 'CLASSICAL CADENCE'
@@ -131,7 +131,7 @@ export class CombatAI {
       DESPERATION_OVERDRIVE: {
         comboProbability: 0.92,
         feintProbability: 0.30,
-        speedMultiplier: 1.28,
+        speedMultiplier: 1.06,
         cooldownMs: 450,
         color: '#9e3d2b',
         label: 'FERVENCY APEX'
@@ -446,7 +446,17 @@ export class CombatAI {
       this.emitThought(`TACTICAL PROBE: ${singleAttack}`, '#d4a03c');
     }
 
-    const baseWindup = Math.max(300, Math.round((560 - (99 - this.gameState.roundTime) * 2.8) / speedMult));
+    const baseAttackWindups = {
+      LEFT_JAB: 620,
+      RIGHT_CROSS: 660,
+      LEFT_HOOK: 690,
+      RIGHT_HOOK: 710,
+      UPPERCUT: 680,
+      OVERHAND: 750,
+      BODY_SHOT: 700
+    };
+    const nominalWindup = baseAttackWindups[singleAttack] || 660;
+    const baseWindup = Math.round(nominalWindup / diffConfig.speedMultiplier);
 
     return {
       type: 'STRIKE',

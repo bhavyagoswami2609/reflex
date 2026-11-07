@@ -135,10 +135,10 @@ export class GameState {
     this.rivalChipTimer = performance.now() + 500;
     this.rivalFlash = 0.8;
 
-    // Increment strike sequence with realistic scaling (up to +40% boost for high hit streaks)
+    // Increment strike sequence with realistic athletic scaling (up to +25% boost for high hit streaks)
     this.comboCount++;
     this.comboTimer = performance.now() + 1900; // 1.9s combo window
-    this.comboMultiplier = 1.0 + Math.min(0.40, (this.comboCount - 1) * 0.04);
+    this.comboMultiplier = 1.0 + Math.min(0.25, (this.comboCount - 1) * 0.025);
 
     // Charge Super Gauge
     this.superGauge = Math.min(this.superMax, this.superGauge + 8);
