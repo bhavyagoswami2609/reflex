@@ -6,7 +6,7 @@
  * - Classical Pugilism Terminology and Dark Luxury HUD
  */
 
-import { COMBO_DEFINITIONS, getCounterComboForHabit } from './boxingCombos.js';
+import { COMBO_DEFINITIONS, getCounterComboForHabit, getCombosForDifficulty } from './boxingCombos.js';
 
 /**
  * Opponent Rigor / Difficulty Configurations
@@ -76,13 +76,14 @@ export class CombatAI {
       neutralCount: 0,
       prematureEvasionCount: 0,
       playerCounterStrikes: 0,
+      playerConsecutiveBlocks: 0,
       lastRecordedDefense: 'NONE',
       detectedHabit: 'NONE',
       confidence: 0
     };
 
     // Tactical Thought Telemetry
-    this.currentThought = 'PALESTRA PROBING: DISTANCE APPRAISAL WITH LEAD JAB';
+    this.currentThought = 'PROBING: DISTANCE APPRAISAL WITH LEAD JAB';
     this.thoughtTimestamp = performance.now();
     this.thoughtColor = '#d4a03c';
     this.thoughtDuration = 3200;
@@ -152,11 +153,12 @@ export class CombatAI {
       neutralCount: 0,
       prematureEvasionCount: 0,
       playerCounterStrikes: 0,
+      playerConsecutiveBlocks: 0,
       lastRecordedDefense: 'NONE',
       detectedHabit: 'NONE',
       confidence: 0
     };
-    this.currentThought = 'PALESTRA REGISTRY: SCANNING OPPONENT STANCE PROTOCOLS';
+    this.currentThought = 'TACTICAL REGISTRY: SCANNING OPPONENT STANCE PROTOCOLS';
     this.thoughtTimestamp = performance.now();
     this.thoughtColor = '#d4a03c';
     this.nextDecisionTime = performance.now() + 1000;
@@ -311,7 +313,7 @@ export class CombatAI {
       case 'HABIT_AGGRESSIVE_COUNTER':
         return 'TACTICAL CADENCE: BAITING COUNTER STRIKE';
       default:
-        return 'PALESTRA DRILL: FORMULATING COUNTER CADENCE';
+        return 'TACTICAL DRILL: FORMULATING COUNTER CADENCE';
     }
   }
 
@@ -363,6 +365,29 @@ export class CombatAI {
 
     const roll = Math.random();
 
+    // Priority 0: Anti-Turtling / Block-Break Trigger
+    // If the player blocks repeatedly in a row (>= 2 blocks) or high guard is heavily favored,
+    // trigger a block-break combo or body-trap to prevent exploiting the block!
+    const isTurtling = (this.profiler.playerConsecutiveBlocks >= 2) || (habit === 'HABIT_HIGH_GUARD');
+    if (isTurtling && (this.difficulty === 'CHAMPION' || this.difficulty === 'PROFESSIONAL')) {
+      let breakerCombo = null;
+      if (this.difficulty === 'CHAMPION') {
+        // Champion has both Slip-Trap and Shell-Cracker with Block Break finishers
+        breakerCombo = Math.random() < 0.5 ? COMBO_DEFINITIONS.SHELL_CRACKER : COMBO_DEFINITIONS.SLIP_TRAP;
+        this.emitThought('ANTI-TURTLE: GUARD CRACK PROTOCOL ENGAGED', '#ef4444');
+      } else {
+        // Professional has Slip-Trap (Heavy Rear Hook block break) or Body-Head Trap
+        breakerCombo = Math.random() < 0.65 ? COMBO_DEFINITIONS.SLIP_TRAP : COMBO_DEFINITIONS.BODY_HEAD_TRAP;
+        this.emitThought('ANTI-TURTLE: TARGETING GUARD WITH SLIP-TRAP', '#eec05a');
+      }
+      return {
+        type: 'COMBO',
+        combo: breakerCombo,
+        speedMultiplier: speedMult,
+        windupMs: Math.round(breakerCombo.steps[0].windupMs / speedMult)
+      };
+    }
+
     // Priority 1: If player slips prematurely on windups, throw FEINT_OVERHAND
     if (habit === 'HABIT_PREMATURE_EVASION' || roll < (config.feintProbability * (this.difficulty === 'NOVICE' ? 0.3 : 1.0))) {
       this.emitThought('TACTICAL FEINT: DRAWING PREMATURE EVASION', '#eec05a');
@@ -374,26 +399,20 @@ export class CombatAI {
       };
     }
 
-    // Priority 2: Execute Adaptive Combo if habit is identified or roll matches combo probability
+    // Priority 2: Execute Adaptive or Randomized Realistic Combo
     if (roll < comboProb) {
+      const availableCombos = getCombosForDifficulty(this.difficulty);
       let chosenCombo = null;
 
-      if (habit === 'HABIT_HIGH_GUARD') {
-        chosenCombo = COMBO_DEFINITIONS.BODY_HEAD_TRAP;
-        this.emitThought('TACTICAL READ: HIGH GUARD IDENTIFIED — DIGGING TO RIBS', '#9e3d2b');
-      } else if (habit === 'HABIT_SLIP_RIGHT') {
-        chosenCombo = COMBO_DEFINITIONS.ONE_TWO_THREE;
-        this.emitThought('TACTICAL READ: LATERAL SLIP PREDICTED — HOOK INTERCEPT', '#d4a03c');
-      } else if (habit === 'HABIT_DUCK' || habit === 'HABIT_AGGRESSIVE_COUNTER') {
-        chosenCombo = COMBO_DEFINITIONS.COUNTER_CRUSH;
-        this.emitThought('TACTICAL CADENCE: COUNTERING RHYTHM WITH UPPERCUT', '#eec05a');
-      } else if (this.currentArchetype === 'PRESSURE_COMBOS' || this.currentArchetype === 'DESPERATION_OVERDRIVE') {
-        chosenCombo = Math.random() > 0.5 ? COMBO_DEFINITIONS.HEAVY_PRESSURE : COMBO_DEFINITIONS.ONE_TWO_THREE;
-        this.emitThought('IMPERIAL BARRAGE: UNLEASHING FLURRY CADENCE', '#9e3d2b');
+      // 40% chance to target specific habit if habit detected, 60% chance for randomized combo from tier
+      if (habit !== 'NONE' && Math.random() < 0.40) {
+        chosenCombo = getCounterComboForHabit(habit, this.difficulty);
       } else {
-        chosenCombo = COMBO_DEFINITIONS.ONE_TWO;
-        this.emitThought('CLASSICAL CADENCE: SNAP ONE-TWO COMBINATION', '#d4a03c');
+        // Pick randomly from the difficulty's realistic combo pool
+        chosenCombo = availableCombos[Math.floor(Math.random() * availableCombos.length)];
       }
+
+      this.emitThought(`TACTICAL COMBO: ${chosenCombo.name}`, '#d4a03c');
 
       return {
         type: 'COMBO',
@@ -420,7 +439,7 @@ export class CombatAI {
     } else {
       const pool = ['LEFT_JAB', 'RIGHT_CROSS', 'LEFT_HOOK', 'RIGHT_HOOK', 'OVERHAND'];
       singleAttack = pool[Math.floor(Math.random() * pool.length)];
-      this.emitThought(`PALESTRA DRILL: PROBING DISTANCE WITH ${singleAttack}`, '#d4a03c');
+      this.emitThought(`TACTICAL PROBE: ${singleAttack}`, '#d4a03c');
     }
 
     const baseWindup = Math.max(300, Math.round((560 - (99 - this.gameState.roundTime) * 2.8) / speedMult));
@@ -433,9 +452,14 @@ export class CombatAI {
     };
   }
 
+  onPlayerBlocked() {
+    this.profiler.playerConsecutiveBlocks = (this.profiler.playerConsecutiveBlocks || 0) + 1;
+  }
+
   onPlayerEvaded(isCombo, isFullCombo) {
     this.consecutivePlayerEvades++;
     this.consecutiveHitsOnPlayer = 0;
+    this.profiler.playerConsecutiveBlocks = 0;
 
     if (isFullCombo) {
       this.emitThought('CADENCE INTERRUPTED: SEQUENCE DEFENDED — RECOVERY WINDOW OPEN', '#9e3d2b');
@@ -445,9 +469,10 @@ export class CombatAI {
   onHitLanded(isCombo, damage) {
     this.consecutiveHitsOnPlayer++;
     this.consecutivePlayerEvades = 0;
+    this.profiler.playerConsecutiveBlocks = 0;
 
     if (this.consecutiveHitsOnPlayer >= 2) {
-      this.emitThought('KINEMATIC ADVANTAGE: OPPONENT GUARD COMPROMISED — PRESSING ATTACK', '#d4a03c');
+      this.emitThought('ADVANTAGE: OPPONENT GUARD COMPROMISED — PRESSING ATTACK', '#d4a03c');
     }
   }
 
