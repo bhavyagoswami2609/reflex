@@ -1,5 +1,3 @@
-import confetti from 'canvas-confetti';
-
 /**
  * Street Fighter Hit Sparks, Floating Badges, and Camera Shake FX
  */
@@ -16,12 +14,7 @@ export class FXRenderer {
   }
 
   triggerVictoryConfetti() {
-    confetti({
-      particleCount: 150,
-      spread: 90,
-      origin: { y: 0.6 },
-      colors: ['#ffe600', '#ff0055', '#00f3ff', '#ffffff']
-    });
+    // Disabled
   }
 
   /**

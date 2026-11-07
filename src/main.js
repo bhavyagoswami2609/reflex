@@ -38,6 +38,7 @@ class ShadowBoxingApp {
 
     // State & Tracking
     this.poseLandmarks = null;
+    this.firstFrameProcessed = false;
     this.lastFrameTime = performance.now();
     this.isRunning = false;
     this.isPaused = false;
@@ -223,14 +224,41 @@ class ShadowBoxingApp {
     }
   }
 
-  async enterArena() {
-    const enterBtn = document.getElementById('btn-enter-arena');
-    if (!this.isRunning) {
-      if (enterBtn) enterBtn.textContent = 'CONNECTING CAMERA...';
-      await this.startCamera();
-      if (enterBtn) enterBtn.textContent = 'ENTER THE ARENA';
+  showTrackingLoader(statusText = 'CONNECTING OPTICAL SENSORS...') {
+    const loader = document.getElementById('tracking-loader');
+    const statusEl = document.getElementById('tracking-loader-status');
+    if (statusEl) statusEl.textContent = statusText;
+    if (loader) {
+      loader.style.display = 'flex';
+      loader.offsetHeight; // Force reflow
+      loader.classList.add('active');
     }
+  }
+
+  updateTrackingLoader(statusText) {
+    const statusEl = document.getElementById('tracking-loader-status');
+    if (statusEl) statusEl.textContent = statusText;
+  }
+
+  hideTrackingLoader() {
+    const loader = document.getElementById('tracking-loader');
+    if (loader) {
+      loader.classList.remove('active');
+      setTimeout(() => {
+        loader.style.display = 'none';
+      }, 350);
+    }
+  }
+
+  async enterArena() {
     this.closeMenu();
+    if (!this.isRunning) {
+      this.showTrackingLoader('ACCESSING OPTICAL CAMERA...');
+      await this.startCamera((status) => this.updateTrackingLoader(status));
+      this.updateTrackingLoader('CALIBRATION LOCKED');
+      await new Promise(r => setTimeout(r, 350));
+      this.hideTrackingLoader();
+    }
     this.gameState.round = 1;
     this.retryMatch();
     this.updateHeaderDisciplineTitle();
@@ -362,7 +390,7 @@ class ShadowBoxingApp {
     }, durationMs);
   }
 
-  async startCamera() {
+  async startCamera(onStatus) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
@@ -374,6 +402,8 @@ class ShadowBoxingApp {
           resolve();
         };
       });
+
+      if (onStatus) onStatus('LOADING NEURAL VISION MODELS...');
 
       // Initialize MediaPipe Pose from CDN global
       if (window.Pose) {
@@ -391,10 +421,12 @@ class ShadowBoxingApp {
 
         pose.onResults((results) => {
           this.poseLandmarks = results.poseLandmarks;
+          this.firstFrameProcessed = true;
         });
 
         // Initialize MediaPipe Hands (21-Joint Precision Hand Tracking) from CDN global
         if (window.Hands) {
+          if (onStatus) onStatus('INITIALIZING 21-JOINT HAND KINEMATICS...');
           const hands = new window.Hands({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
           });
@@ -414,6 +446,7 @@ class ShadowBoxingApp {
         }
 
         if (window.Camera) {
+          if (onStatus) onStatus('STARTING KINEMATIC STREAM...');
           const camera = new window.Camera(this.video, {
             onFrame: async () => {
               if (this.video.readyState >= 2) {
@@ -428,12 +461,26 @@ class ShadowBoxingApp {
           });
           camera.start();
         }
+
+        // Await first frame / calibration
+        if (onStatus) onStatus('CALIBRATING POSE & STANCE...');
+        await new Promise((resolve) => {
+          const timeout = setTimeout(resolve, 3500); // 3.5s fallback so it never hangs if user is out of view
+          const checkInterval = setInterval(() => {
+            if (this.poseLandmarks || this.firstFrameProcessed) {
+              clearTimeout(timeout);
+              clearInterval(checkInterval);
+              resolve();
+            }
+          }, 50);
+        });
       }
 
       this.isRunning = true;
       requestAnimationFrame((t) => this.gameLoop(t));
     } catch (err) {
       console.error('Failed to initialize webcam / pose tracking:', err);
+      this.hideTrackingLoader();
       alert('Camera access is required for skeletal tracking. Please allow camera permissions.');
     }
   }
@@ -756,7 +803,6 @@ class ShadowBoxingApp {
           if (title) title.textContent = 'Victory';
           if (sub) sub.textContent = 'Kinematic mastery established through superior evasion and counter-striking cadence.';
           this.audio.playVictoryTune();
-          this.fx.triggerVictoryConfetti();
           this.boxer3D.knockout();
         } else {
           if (title) title.textContent = 'Technical Conclusion';
