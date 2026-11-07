@@ -853,26 +853,22 @@ class ShadowBoxingApp {
 
         if (badge) {
           badge.textContent = isMatchFullyOver
-            ? (isKO ? `${roundStr} — KNOCKOUT` : `MATCH CONCLUDED (${roundStr})`)
-            : `${roundStr} COMPLETE`;
+            ? (isKO ? `${roundStr} • KNOCKOUT` : `${roundStr} • FINAL`)
+            : roundStr;
+        }
+
+        if (title) {
+          title.textContent = isMatchFullyOver ? 'GAME OVER' : 'ROUND OVER';
+        }
+
+        if (sub) {
+          sub.textContent = '';
+          sub.style.display = 'none';
         }
 
         if (this.gameState.winner === 'PLAYER') {
-          if (title) title.textContent = isMatchFullyOver ? (isKO ? 'Knockout Victory' : 'Match Victory') : 'Round Victory';
-          if (sub) {
-            sub.textContent = isMatchFullyOver
-              ? 'Kinematic mastery established. The session concludes with total tactical supremacy.'
-              : 'Superior evasion and counter-striking cadence. Prepare for the next round.';
-          }
           this.audio.playVictoryTune();
           if (isKO) this.boxer3D.knockout();
-        } else {
-          if (title) title.textContent = isMatchFullyOver ? (isKO ? 'Knockout Defeat' : 'Technical Conclusion') : 'Round Concluded';
-          if (sub) {
-            sub.textContent = isMatchFullyOver
-              ? 'The match concluded. Recalibrate defense and stance alignment for the next session.'
-              : 'The round concluded. Recalibrate defense and stance alignment for the next round.';
-          }
         }
 
         // Top-line stats

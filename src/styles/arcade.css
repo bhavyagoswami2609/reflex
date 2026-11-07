@@ -854,7 +854,7 @@ body {
   color: var(--text-primary);
   text-shadow: 0 0 20px var(--accent-glow);
   margin-top: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 22px;
 }
 
 .match-subtitle {
