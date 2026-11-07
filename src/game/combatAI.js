@@ -335,6 +335,10 @@ export class CombatAI {
         const animDiff = key === 'NOVICE' ? 'ROOKIE' : key === 'CHAMPION' ? 'CHAMPION' : 'PRO';
         this.boxer3D.setDifficulty(animDiff);
       }
+      if (this.gameState && this.gameState.setOpponentConfig) {
+        const charType = (this.boxer3D && this.boxer3D.characterType) || 'human';
+        this.gameState.setOpponentConfig(charType, key);
+      }
       return cfg;
     }
     return this.getDifficultyConfig();

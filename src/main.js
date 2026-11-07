@@ -99,6 +99,7 @@ class ShadowBoxingApp {
         pill.classList.add('active');
         const opp = pill.dataset.opponent;
         this.boxer3D.setCharacterType(opp);
+        this.gameState.setOpponentConfig(opp, this.combatAI.difficulty);
       });
     });
 
@@ -112,6 +113,7 @@ class ShadowBoxingApp {
         this.combatAI.setDifficulty(rigor);
         const animDiff = (rigor === 'NOVICE') ? 'ROOKIE' : (rigor === 'CHAMPION') ? 'CHAMPION' : 'PRO';
         this.boxer3D.setDifficulty(animDiff);
+        this.gameState.setOpponentConfig(this.boxer3D.characterType, rigor);
       });
     });
 
@@ -374,6 +376,7 @@ class ShadowBoxingApp {
     const modal = document.getElementById('match-over-modal');
     if (modal) modal.style.display = 'none';
 
+    this.gameState.setOpponentConfig(this.boxer3D?.characterType || 'human', this.combatAI?.difficulty || 'PROFESSIONAL');
     this.gameState.resetMatch();
     this.boxer3D.reset();
     this.combatAI.reset();
@@ -402,6 +405,7 @@ class ShadowBoxingApp {
     this.defenseDetector.reset();
     this.boxer3D.reset();
     this.boxer3D.setVisible(mode === 'REFLEX');
+    this.gameState.setOpponentConfig(this.boxer3D?.characterType || 'human', this.combatAI?.difficulty || 'PROFESSIONAL');
     this.gameState.resetMatch();
     this.combatAI.reset();
     this.updatePanelVisibility();
@@ -622,7 +626,7 @@ class ShadowBoxingApp {
 
     // 7. Screen-Space Diegetic Overlays (HUD, Round Timer, VR Telemetry)
     if (this.currentMode === 'REFLEX') {
-      const oppName = this.boxer3D.characterType === 'human' ? 'SHANE FAZEN (SPARRING)' : 'TITAN AUTOMATON';
+      const oppName = this.boxer3D.characterType === 'human' ? 'DUMMY' : 'ZEUS';
       this.gameState.renderHUD(this.ctx, width, height, oppName);
     }
     this.vrCamera.renderVRHUD(this.ctx, width, height);

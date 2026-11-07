@@ -26,15 +26,16 @@ export function toRoman(num) {
 
 export class GameState {
   constructor() {
-    // Health pools (2500 HP) for realistic, multi-exchange boxing rounds
+    // Health pools (2500 HP for Athlete)
     this.playerMaxHp = 2500;
     this.playerHp = 2500;
     this.playerGhostHp = 2500;
     this.playerChipTimer = 0;
 
-    this.rivalMaxHp = 2500;
-    this.rivalHp = 2500;
-    this.rivalGhostHp = 2500;
+    // Opponent health pool (Configured dynamically: Zeus has more HP than Dummy, scaled by difficulty)
+    this.rivalMaxHp = 2000; // Default: Dummy on Professional
+    this.rivalHp = 2000;
+    this.rivalGhostHp = 2000;
     this.rivalChipTimer = 0;
 
     // Super / Drive Gauge (0 to 100, 3 Star Tiers)
@@ -73,6 +74,44 @@ export class GameState {
     this.comboCount = 0;
     this.comboMultiplier = 1.0;
     this.score = 0;
+  }
+
+  /**
+   * Configures opponent attributes and health scaling based on fighter archetype and difficulty tier.
+   * - Zeus (Heavyweight Robot):
+   *   - Champion: 20% more health than player (3000 HP)
+   *   - Professional: Equal health to player (2500 HP)
+   *   - Novice / Rookie: 20% less health than player (2000 HP)
+   * - Dummy (Training Dummy):
+   *   - Always has less health than Zeus (2400 HP / 2000 HP / 1600 HP)
+   */
+  setOpponentConfig(characterType = 'human', difficulty = 'PROFESSIONAL') {
+    const diff = (difficulty || 'PROFESSIONAL').toUpperCase();
+    let maxHp = 2500;
+
+    if (characterType === 'robot') {
+      // Zeus (Heavyweight Robot)
+      if (diff === 'CHAMPION') {
+        maxHp = Math.round(this.playerMaxHp * 1.20); // 3000 HP (20% more than player)
+      } else if (diff === 'NOVICE' || diff === 'ROOKIE') {
+        maxHp = Math.round(this.playerMaxHp * 0.80); // 2000 HP (20% less than player)
+      } else {
+        maxHp = this.playerMaxHp; // 2500 HP (equal to player)
+      }
+    } else {
+      // Dummy (Training Dummy) - less health than Zeus
+      if (diff === 'CHAMPION') {
+        maxHp = 2400; // Less than Champion Zeus (3000 HP)
+      } else if (diff === 'NOVICE' || diff === 'ROOKIE') {
+        maxHp = 1600; // Less than Novice Zeus (2000 HP)
+      } else {
+        maxHp = 2000; // Less than Pro Zeus (2500 HP)
+      }
+    }
+
+    this.rivalMaxHp = maxHp;
+    this.rivalHp = maxHp;
+    this.rivalGhostHp = maxHp;
   }
 
   damagePlayer(amount) {
@@ -152,7 +191,7 @@ export class GameState {
    * @param {number} height Screen height
    * @param {string} opponentName Fighter display name
    */
-  renderHUD(ctx, width, height, opponentName = 'SHANE FAZEN (SPARRING)') {
+  renderHUD(ctx, width, height, opponentName = 'DUMMY') {
     const margin = Math.max(18, Math.min(36, width * 0.03));
     const topY = 82; // Positioned cleanly below the neoclassical header bar
     const barHeight = 26;
