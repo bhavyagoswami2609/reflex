@@ -935,21 +935,54 @@ class ShadowBoxingApp {
         this.boxer3D.recordComboStepEvaded(true);
         this.audio.playWhoosh(1.4);
       } else {
-        if (req === 'SLIP_RIGHT' && (defense.slipRight || defense.action === 'SLIP_RIGHT')) {
+        // Determine incoming punch trajectory relative to player:
+        // Opponent's LEFT arm is positioned on screen-right (+X) -> punch travels towards player's right side.
+        // Opponent's RIGHT arm is positioned on screen-left (-X) -> punch travels towards player's left side.
+        const attackArm = this.boxer3D.activeStepDef?.arm || 
+                          this.boxer3D.activeAttackDef?.arm || 
+                          (this.boxer3D.hitTelemetry?.fistWorldPos?.x > 0 ? 'LEFT' : 'RIGHT');
+        const isPunchFromPlayerRight = (attackArm === 'LEFT') || (this.boxer3D.hitTelemetry?.fistWorldPos?.x > 0.04);
+        const isPunchFromPlayerLeft = (attackArm === 'RIGHT') || (this.boxer3D.hitTelemetry?.fistWorldPos?.x < -0.04);
+
+        // Player lateral lean detection (mirrored webcam coordinates: +X is player right, -X is player left)
+        const slipThresh = (defense.slipThreshold ? defense.slipThreshold * 0.70 : 0.035);
+        const isLeaningRight = defense.slipRight || defense.action === 'SLIP_RIGHT' || (defense.deltaX && defense.deltaX > slipThresh);
+        const isLeaningLeft = defense.slipLeft || defense.action === 'SLIP_LEFT' || (defense.deltaX && defense.deltaX < -slipThresh);
+
+        let isLeaningTowardsPunch = false;
+        let isLeaningAwayFromPunch = false;
+
+        if (isPunchFromPlayerRight) {
+          // Punch is incoming on player's right side
+          if (isLeaningRight) isLeaningTowardsPunch = true;
+          if (isLeaningLeft) isLeaningAwayFromPunch = true;
+        } else {
+          // Punch is incoming on player's left side
+          if (isLeaningLeft) isLeaningTowardsPunch = true;
+          if (isLeaningRight) isLeaningAwayFromPunch = true;
+        }
+
+        let dodgeType = 'NONE';
+        if (isLeaningTowardsPunch) {
+          // Strictly invalid: leaning towards the oncoming punch cannot register as a dodge
+          evaded = false;
+        } else if (isLeaningAwayFromPunch) {
+          // Clean directional slip away from the punch
           evaded = true;
-        } else if (req === 'SLIP_LEFT' && (defense.slipLeft || defense.action === 'SLIP_LEFT')) {
+          dodgeType = 'SLIP';
+        } else if (defense.ducking || defense.action === 'DUCK') {
+          // Ducking underneath the punch trajectory
           evaded = true;
-        } else if (req === 'DUCK' && (defense.ducking || defense.action === 'DUCK')) {
+          dodgeType = 'DUCK';
+        } else if (defense.blocking || defense.action === 'HIGH_GUARD_BLOCK') {
+          // High guard block
           evaded = true;
-        } else if (req === 'HIGH_GUARD_BLOCK' && (defense.blocking || defense.action === 'HIGH_GUARD_BLOCK')) {
-          evaded = true;
-        } else if (defense.blocking) {
-          evaded = true;
+          dodgeType = 'BLOCK';
         }
 
         const hit = this.boxer3D.hitTelemetry;
-        const hx = hit.screenPos.x;
-        const hy = hit.screenPos.y;
+        const hx = hit?.screenPos?.x || width * 0.5;
+        const hy = hit?.screenPos?.y || height * 0.45;
 
         if (this.boxer3D.activeCombo) {
           // Combination Branch
@@ -971,7 +1004,8 @@ class ShadowBoxingApp {
               this.fx.addFloatingBadge('FULL SEQUENCE DEFENDED — APEX COUNTER', hx, hy - 45, '#eec05a', 30);
               this.combatAI.onPlayerEvaded(true, true);
             } else {
-              this.fx.addFloatingBadge(`SEQUENCE EVADED (${toRoman(stepIdx + 1)} / ${toRoman(totalSteps)})`, hx, hy - 30, '#d4a03c', 24);
+              const slipText = dodgeType === 'SLIP' ? 'DODGED — SLIP' : dodgeType === 'DUCK' ? 'DODGED — DUCK' : 'BLOCKED';
+              this.fx.addFloatingBadge(`${slipText} (${toRoman(stepIdx + 1)} / ${toRoman(totalSteps)})`, hx, hy - 30, '#d4a03c', 24);
               this.combatAI.onPlayerEvaded(true, false);
             }
           } else {
@@ -980,7 +1014,8 @@ class ShadowBoxingApp {
             this.gameState.damagePlayer(stepDmg);
             this.fx.addTrauma(0.45);
             this.fx.emitHitSpark(hx, hy, 'BAD');
-            this.fx.addFloatingBadge(`STRIKE CONCEDED (${toRoman(stepIdx + 1)} / ${toRoman(totalSteps)})`, hx, hy, '#9e3d2b', 28);
+            const hitText = isLeaningTowardsPunch ? 'LEANED INTO PUNCH' : `STRIKE CONCEDED (${toRoman(stepIdx + 1)} / ${toRoman(totalSteps)})`;
+            this.fx.addFloatingBadge(hitText, hx, hy, '#ef4444', 28);
             this.combatAI.onHitLanded(true, stepDmg);
           }
         } else {
@@ -990,7 +1025,8 @@ class ShadowBoxingApp {
             this.audio.playWhoosh(1.2);
             this.audio.playBlock();
             this.fx.emitHitSpark(hx, hy, 'PERFECT');
-            this.fx.addFloatingBadge('SLIP RECORDED — EXECUTE COUNTER', hx, hy - 30, '#d4a03c', 26);
+            const slipText = dodgeType === 'SLIP' ? 'DODGED — SLIP AWAY' : dodgeType === 'DUCK' ? 'DODGED — DUCKED UNDER' : 'GUARD BLOCKED';
+            this.fx.addFloatingBadge(slipText, hx, hy - 30, '#d4a03c', 26);
             this.gameState.addSuper(15);
             this.boxer3D.openOpeningWindow(timestamp);
             this.combatAI.onPlayerEvaded(false, false);
@@ -999,7 +1035,8 @@ class ShadowBoxingApp {
             this.gameState.damagePlayer(55);
             this.fx.addTrauma(0.5);
             this.fx.emitHitSpark(hx, hy, 'BAD');
-            this.fx.addFloatingBadge('STRIKE CONCEDED (-55 HP)', hx, hy, '#9e3d2b', 28);
+            const hitText = isLeaningTowardsPunch ? 'LEANED INTO PUNCH (-55 HP)' : 'STRIKE CONCEDED (-55 HP)';
+            this.fx.addFloatingBadge(hitText, hx, hy, '#ef4444', 28);
             this.boxer3D.state = 'RECOVERING';
             this.boxer3D.stateTimer = timestamp;
             this.combatAI.onHitLanded(false, 55);
